@@ -123,6 +123,17 @@ struct PlatformEntireFile {
     i32 content_size;
 };
 
+struct PlatformAsyncFileHandle;
+
+#define PLATFORM_BEGIN_READ_ENTIRE_FILE(name) b32 name(char* filename, PlatformAsyncFileHandle* handle)
+typedef PLATFORM_BEGIN_READ_ENTIRE_FILE(PlatformBeginReadEntireFile);
+
+#define PLATFORM_FILE_IO_COMPLETE(name) b32 name(PlatformAsyncFileHandle* handle)
+typedef PLATFORM_FILE_IO_COMPLETE(PlatformFileIOComplete);
+
+#define PLATFORM_ENTIRE_FILE_RESULT(name) PlatformEntireFile name(PlatformAsyncFileHandle* handle)
+typedef PLATFORM_ENTIRE_FILE_RESULT(PlatformEntireFileResult);
+
 #define DEBUG_PLATFORM_FREE_FILE_MEMORY(name) void name(void* memory)
 typedef DEBUG_PLATFORM_FREE_FILE_MEMORY(DEBUG_PlatformFreeFileMemory);
 
@@ -133,9 +144,13 @@ typedef DEBUG_PLATFORM_READ_ENTIRE_FILE(DEBUG_PlatformReadEntireFile);
 typedef DEBUG_PLATFORM_WRITE_ENTIRE_FILE(DEBUG_PlatformWriteEntireFile);
 
 struct PlatformServices {
-    DEBUG_PlatformFreeFileMemory* DEBUG_platform_free_file_memory;
-    DEBUG_PlatformWriteEntireFile* DEBUG_platform_write_entire_file;
-    DEBUG_PlatformReadEntireFile* DEBUG_platform_read_entire_file;
+    DEBUG_PlatformFreeFileMemory* DEBUG_free_file_memory;
+    DEBUG_PlatformWriteEntireFile* DEBUG_write_entire_file;
+    DEBUG_PlatformReadEntireFile* DEBUG_read_entire_file;
+
+    PlatformFileIOComplete* file_io_complete;
+    PlatformEntireFileResult* entire_file_result;
+    PlatformBeginReadEntireFile* begin_read_entire_file;
 };
 
 struct PlatformRenderSettings {
@@ -148,8 +163,8 @@ struct TransientState;
 
 extern GameState* g_game_state;
 extern TransientState* g_transient_state;
-extern PlatformInput* g_platform_input;
-extern PlatformServices g_platform_services;
+extern PlatformInput* g_input;
+extern PlatformServices g_platform;
 extern PlatformRenderSettings g_platform_render_settings;
 
 void game_update_and_render();
@@ -159,6 +174,41 @@ void game_update_and_render();
 #define PUSH_ARRAY(arena, count, type) (type *)_push_size(arena, ((size_t)count) * sizeof(type))
 #define ZERO_STRUCT(instance) memset(&(instance), 0, sizeof(instance))
 #define ZERO_ARRAY(instance, count) memset(instance, 0, ((size_t)count) * sizeof(*instance))
+
+#ifdef PLATFORM_WINDOWS
+#include "Strsafe.h"
+
+// http://stackoverflow.com/questions/29049686/is-there-a-better-way-to-pass-formatted-output-to-outputdebugstring
+#define DBGPRINT(kwszDebugFormatString, ...) _DBGPRINT(__FUNCTION__, __LINE__, kwszDebugFormatString, __VA_ARGS__)
+
+VOID _DBGPRINT( LPCSTR kwszFunction, INT iLineNumber, LPCSTR kwszDebugFormatString, ... ) \
+{
+    INT cbFormatString = 0;
+    va_list args;
+    PCHAR wszDebugString = NULL;
+    size_t st_Offset = 0;
+
+    va_start( args, kwszDebugFormatString );
+
+    cbFormatString = _scprintf("[%s:%d] ", kwszFunction, iLineNumber ) * sizeof( CHAR );
+    cbFormatString += _vscprintf( kwszDebugFormatString, args ) * sizeof( CHAR ) + 2;
+
+    /* Depending on the size of the format string, allocate space on the stack or the heap. */
+    wszDebugString = (PCHAR)_malloca( cbFormatString );
+
+    /* Populate the buffer with the contents of the format string. */
+    StringCbPrintf( wszDebugString, cbFormatString, "[%s:%d] ", kwszFunction, iLineNumber );
+    StringCbLength( wszDebugString, cbFormatString, &st_Offset );
+    StringCbVPrintf( &wszDebugString[st_Offset / sizeof(CHAR)], cbFormatString - st_Offset, kwszDebugFormatString, args );
+
+    OutputDebugString( wszDebugString );
+
+    _freea( wszDebugString );
+    va_end( args );
+}
+#else
+#define DBGPRINT( kwszDebugFormatString, ... ) ;;
+#endif
 
 #endif /* end of include guard: PLATFORM_H__ */
 

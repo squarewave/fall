@@ -9,11 +9,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#ifdef PLATFORM_WINDOWS
+#include <Windows.h>
+#endif
 
 #include "gl/glew.h"
 #include "gl/glu.h"
 #include "SDL2/SDL.h"
-#include <Windows.h>
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_sdl_gl3.h"
 
 #include "platform.h"
 #include "sdl_platform.h"
@@ -21,11 +25,12 @@
 
 GameState* g_game_state;
 TransientState* g_transient_state;
-PlatformInput* g_platform_input;
-PlatformServices g_platform_services;
+PlatformInput* g_input;
+PlatformServices g_platform;
 PlatformRenderSettings g_platform_render_settings;
 
 void exit_gracefully(int error_code) {
+    ImGui_ImplSdlGL3_Shutdown();
     exit(error_code);
 }
 
@@ -39,7 +44,7 @@ DEBUG_PLATFORM_READ_ENTIRE_FILE(DEBUG_platform_read_entire_file) {
     FILE *f = fopen(filename, "rb");
 
     if (f == 0) {
-        printf("Failed to open file %s\n", filename);
+        DBGPRINT("Failed to open file %s\n", filename);
         return result;
     }
 
@@ -49,7 +54,7 @@ DEBUG_PLATFORM_READ_ENTIRE_FILE(DEBUG_platform_read_entire_file) {
 
     char *string = (char *)malloc(fsize + 1);
     if (!fread(string, fsize, 1, f)) {
-        printf("No results from fread\n");
+        DBGPRINT("No results from fread\n");
     }
     fclose(f);
 
@@ -66,6 +71,56 @@ DEBUG_PLATFORM_WRITE_ENTIRE_FILE(DEBUG_platform_write_entire_file) {
     return 0;
 }
 
+#ifdef PLATFORM_WINDOWS
+
+PLATFORM_BEGIN_READ_ENTIRE_FILE(platform_begin_read_entire_file) {
+    HANDLE h_file = CreateFile(filename,
+                               GENERIC_READ,
+                               0,
+                               NULL,
+                               OPEN_EXISTING,
+                               FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
+                               NULL);
+    if (h_file == INVALID_HANDLE_VALUE) {
+        DBGPRINT("INVALID_HANDLE_VALUE: %d\n", GetLastError());
+        return false;
+    }
+
+    i64 file_size = 0;
+    b32 success = GetFileSizeEx(h_file, (PLARGE_INTEGER)&file_size);
+
+    if (!success) {
+        DBGPRINT("GetFileSizeEx failure: %d\n", GetLastError());
+        return false;
+    }
+
+    OVERLAPPED* overlapped = (OVERLAPPED*)calloc(1, sizeof(OVERLAPPED));
+    void* buffer = malloc(file_size);
+    ReadFile(h_file,
+             buffer,
+             file_size,
+             NULL,
+             overlapped);
+
+    handle->file.contents = (unsigned char*)buffer;
+    handle->file.content_size = (i32)file_size;
+    handle->overlapped = overlapped;
+
+    return true;
+}
+
+PLATFORM_FILE_IO_COMPLETE(platform_file_io_complete) {
+    b32 result = handle->overlapped && HasOverlappedIoCompleted(handle->overlapped);
+    handle->overlapped = NULL;
+    return result;
+}
+
+PLATFORM_ENTIRE_FILE_RESULT(platform_entire_file_result) {
+    return handle->file;
+}
+
+#endif
+
 f32 get_seconds_elapsed(u64 old, u64 current) {
     return ((f32)(current - old) / (f32)(SDL_GetPerformanceFrequency()));
 }
@@ -74,9 +129,9 @@ void check_sdl_error(int line = -1) {
     const char *error = SDL_GetError();
     if (*error != '\0')
     {
-        printf("SDL Error: %s\n", error);
+        DBGPRINT("SDL Error: %s\n", error);
         if (line != -1)
-            printf(" + line: %i\n", line);
+            DBGPRINT(" + line: %i\n", line);
         SDL_ClearError();
     }
 }
@@ -95,12 +150,15 @@ int CALLBACK WinMain(
     setlocale(LC_NUMERIC, "");
 
     PlatformContext context = {0};
-    g_platform_services.DEBUG_platform_read_entire_file = DEBUG_platform_read_entire_file;
-    g_platform_services.DEBUG_platform_write_entire_file = DEBUG_platform_write_entire_file;
-    g_platform_services.DEBUG_platform_free_file_memory = DEBUG_platform_free_file_memory;
+    g_platform.DEBUG_read_entire_file = DEBUG_platform_read_entire_file;
+    g_platform.DEBUG_write_entire_file = DEBUG_platform_write_entire_file;
+    g_platform.DEBUG_free_file_memory = DEBUG_platform_free_file_memory;
+    g_platform.begin_read_entire_file = platform_begin_read_entire_file;
+    g_platform.file_io_complete = platform_file_io_complete;
+    g_platform.entire_file_result = platform_entire_file_result;
 
     if (SDL_Init(SDL_INIT_EVERYTHING)) {
-        printf("Unable to init SDL: %s\n", SDL_GetError());
+        DBGPRINT("Unable to init SDL: %s\n", SDL_GetError());
         exit_gracefully(1);
     }
 
@@ -134,6 +192,8 @@ int CALLBACK WinMain(
         exit_gracefully(1);
     }
 
+    ImGui_ImplSdlGL3_Init(context.window);
+
     if(SDL_GL_SetSwapInterval(1) < 0){
         check_sdl_error(__LINE__);
     }
@@ -144,7 +204,6 @@ int CALLBACK WinMain(
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glLineWidth(2.0f);
 
-    glClearColor(0.784f, 0.8745f, 0.925f, 1.0f);
 
     size_t pixel_bytes = START_WIDTH * START_HEIGHT * 4;
     void* pixels = malloc(pixel_bytes);
@@ -167,6 +226,7 @@ int CALLBACK WinMain(
 
     u64 last_counter = SDL_GetPerformanceCounter();
     const f32 target_seconds_per_frame = 1.0f / (f32)FRAME_RATE;
+
     while(running) {
         // TIMED_BLOCK(allotted_time);
 
@@ -209,6 +269,7 @@ int CALLBACK WinMain(
 
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
+            ImGui_ImplSdlGL3_ProcessEvent(&event);
             if (handle_sdl_event(&event, &context)) {
                 running = false;
             }
@@ -237,15 +298,18 @@ int CALLBACK WinMain(
         g_platform_render_settings.width = START_WIDTH;
         g_platform_render_settings.height = START_HEIGHT;
 
-        g_platform_input = &next_input;
+        g_input = &next_input;
+
+        ImGui_ImplSdlGL3_NewFrame(context.window);
 
         game_update_and_render();
 
         prev_input = next_input;
 
+        glClearColor(0.1, 0.3, 0.5, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT);
+        ImGui::Render();
         SDL_GL_SwapWindow(context.window);
-
-        // process_debug_log((tools_state_*)tools_state);
     }
 
     exit_gracefully(0);

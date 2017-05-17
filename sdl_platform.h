@@ -20,4 +20,11 @@ struct PlatformContext {
     PlatformInput* prev_input;
 };
 
+#ifdef PLATFORM_WINDOWS
+struct PlatformAsyncFileHandle {
+  OVERLAPPED* overlapped;
+  PlatformEntireFile file;
+};
+#endif
+
 #endif /* end of include guard: SDL_PLATFORM_H__ */
