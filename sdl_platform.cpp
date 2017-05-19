@@ -22,12 +22,16 @@
 #include "platform.h"
 #include "sdl_platform.h"
 #include "sdl_platform_input.h"
+#include "debug.h"
 
 GameState* g_game_state;
 TransientState* g_transient_state;
 PlatformInput* g_input;
 PlatformServices g_platform;
 PlatformRenderSettings g_platform_render_settings;
+
+char g_debug_print_ring_buffer[DEBUG_PRINT_RING_BUFFER_SIZE + 1] = {0};
+i32 g_debug_print_ring_buffer_write_head = 0;
 
 void exit_gracefully(int error_code) {
     ImGui_ImplSdlGL3_Shutdown();
@@ -44,7 +48,7 @@ DEBUG_PLATFORM_READ_ENTIRE_FILE(DEBUG_platform_read_entire_file) {
     FILE *f = fopen(filename, "rb");
 
     if (f == 0) {
-        DBGPRINT("Failed to open file %s\n", filename);
+        LOG("Failed to open file %s\n", filename);
         return result;
     }
 
@@ -54,7 +58,7 @@ DEBUG_PLATFORM_READ_ENTIRE_FILE(DEBUG_platform_read_entire_file) {
 
     char *string = (char *)malloc(fsize + 1);
     if (!fread(string, fsize, 1, f)) {
-        DBGPRINT("No results from fread\n");
+        LOG("No results from fread\n");
     }
     fclose(f);
 
@@ -82,7 +86,7 @@ PLATFORM_BEGIN_READ_ENTIRE_FILE(platform_begin_read_entire_file) {
                                FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
                                NULL);
     if (h_file == INVALID_HANDLE_VALUE) {
-        DBGPRINT("INVALID_HANDLE_VALUE: %d\n", GetLastError());
+        LOG("INVALID_HANDLE_VALUE: %d\n", GetLastError());
         return false;
     }
 
@@ -90,7 +94,7 @@ PLATFORM_BEGIN_READ_ENTIRE_FILE(platform_begin_read_entire_file) {
     b32 success = GetFileSizeEx(h_file, (PLARGE_INTEGER)&file_size);
 
     if (!success) {
-        DBGPRINT("GetFileSizeEx failure: %d\n", GetLastError());
+        LOG("GetFileSizeEx failure: %d\n", GetLastError());
         return false;
     }
 
@@ -129,9 +133,9 @@ void check_sdl_error(int line = -1) {
     const char *error = SDL_GetError();
     if (*error != '\0')
     {
-        DBGPRINT("SDL Error: %s\n", error);
+        LOG("SDL Error: %s\n", error);
         if (line != -1)
-            DBGPRINT(" + line: %i\n", line);
+            LOG(" + line: %i\n", line);
         SDL_ClearError();
     }
 }
@@ -158,7 +162,7 @@ int CALLBACK WinMain(
     g_platform.entire_file_result = platform_entire_file_result;
 
     if (SDL_Init(SDL_INIT_EVERYTHING)) {
-        DBGPRINT("Unable to init SDL: %s\n", SDL_GetError());
+        LOG("Unable to init SDL: %s\n", SDL_GetError());
         exit_gracefully(1);
     }
 
@@ -301,8 +305,8 @@ int CALLBACK WinMain(
         g_input = &next_input;
 
         ImGui_ImplSdlGL3_NewFrame(context.window);
-
         game_update_and_render();
+        show_debug_log();
 
         prev_input = next_input;
 

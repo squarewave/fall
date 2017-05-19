@@ -160,12 +160,13 @@ struct PlatformRenderSettings {
 
 struct GameState;
 struct TransientState;
+struct PlatformRenderCommandQueue;
 
 extern GameState* g_game_state;
 extern TransientState* g_transient_state;
 extern PlatformInput* g_input;
 extern PlatformServices g_platform;
-extern PlatformRenderSettings g_platform_render_settings;
+extern PlatformRenderCommandQueue* g_platform_render_command_queue;
 
 void game_update_and_render();
 
@@ -178,36 +179,52 @@ void game_update_and_render();
 #ifdef PLATFORM_WINDOWS
 #include "Strsafe.h"
 
-// http://stackoverflow.com/questions/29049686/is-there-a-better-way-to-pass-formatted-output-to-outputdebugstring
-#define DBGPRINT(kwszDebugFormatString, ...) _DBGPRINT(__FUNCTION__, __LINE__, kwszDebugFormatString, __VA_ARGS__)
+#define DEBUG_PRINT_RING_BUFFER_SIZE 0x00000800
+#define DEBUG_PRINT_RING_BUFFER_MASK 0x000007ff
+extern char g_debug_print_ring_buffer[DEBUG_PRINT_RING_BUFFER_SIZE + 1]; // add 1 to ensure null-termination
+extern i32 g_debug_print_ring_buffer_write_head;
 
-VOID _DBGPRINT( LPCSTR kwszFunction, INT iLineNumber, LPCSTR kwszDebugFormatString, ... ) \
+// http://stackoverflow.com/questions/29049686/is-there-a-better-way-to-pass-formatted-output-to-outputdebugstring
+#define LOG(kszDebugFormatString, ...) _LOG(__FUNCTION__, __LINE__, kszDebugFormatString, __VA_ARGS__)
+
+VOID _LOG( LPCSTR kszFunction, INT iLineNumber, LPCSTR kszDebugFormatString, ... ) \
 {
     INT cbFormatString = 0;
     va_list args;
-    PCHAR wszDebugString = NULL;
+    PCHAR szDebugString = NULL;
     size_t st_Offset = 0;
 
-    va_start( args, kwszDebugFormatString );
+    va_start( args, kszDebugFormatString );
 
-    cbFormatString = _scprintf("[%s:%d] ", kwszFunction, iLineNumber ) * sizeof( CHAR );
-    cbFormatString += _vscprintf( kwszDebugFormatString, args ) * sizeof( CHAR ) + 2;
+    cbFormatString = _scprintf("[%s:%d] ", kszFunction, iLineNumber ) * sizeof( CHAR );
+    cbFormatString += _vscprintf( kszDebugFormatString, args ) * sizeof( CHAR ) + 2;
 
     /* Depending on the size of the format string, allocate space on the stack or the heap. */
-    wszDebugString = (PCHAR)_malloca( cbFormatString );
+    szDebugString = (PCHAR)_malloca( cbFormatString );
 
     /* Populate the buffer with the contents of the format string. */
-    StringCbPrintf( wszDebugString, cbFormatString, "[%s:%d] ", kwszFunction, iLineNumber );
-    StringCbLength( wszDebugString, cbFormatString, &st_Offset );
-    StringCbVPrintf( &wszDebugString[st_Offset / sizeof(CHAR)], cbFormatString - st_Offset, kwszDebugFormatString, args );
+    StringCbPrintf( szDebugString, cbFormatString, "[%s:%d] ", kszFunction, iLineNumber );
+    StringCbLength( szDebugString, cbFormatString, &st_Offset );
+    StringCbVPrintf( &szDebugString[st_Offset / sizeof(CHAR)], cbFormatString - st_Offset, kszDebugFormatString, args );
 
-    OutputDebugString( wszDebugString );
+    OutputDebugString( szDebugString );
 
-    _freea( wszDebugString );
+    i32 write_head = g_debug_print_ring_buffer_write_head & DEBUG_PRINT_RING_BUFFER_MASK;
+    i32 remaining_write_space = DEBUG_PRINT_RING_BUFFER_SIZE - write_head;
+    i32 debug_str_len = strlen(szDebugString);
+    if (debug_str_len < remaining_write_space) {
+        strcpy(g_debug_print_ring_buffer + write_head, szDebugString);
+    } else {
+        strncpy(g_debug_print_ring_buffer + write_head, szDebugString, remaining_write_space);
+        strcpy(g_debug_print_ring_buffer, szDebugString + remaining_write_space);
+    }
+    g_debug_print_ring_buffer_write_head += debug_str_len;
+
+    _freea( szDebugString );
     va_end( args );
 }
 #else
-#define DBGPRINT( kwszDebugFormatString, ... ) ;;
+#define LOG( kszDebugFormatString, ... ) ;;
 #endif
 
 #endif /* end of include guard: PLATFORM_H__ */
