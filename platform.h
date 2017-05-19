@@ -124,6 +124,7 @@ struct PlatformEntireFile {
 };
 
 struct PlatformAsyncFileHandle;
+struct PlatformTextureHandle;
 
 #define PLATFORM_BEGIN_READ_ENTIRE_FILE(name) b32 name(char* filename, PlatformAsyncFileHandle* handle)
 typedef PLATFORM_BEGIN_READ_ENTIRE_FILE(PlatformBeginReadEntireFile);
@@ -133,6 +134,12 @@ typedef PLATFORM_FILE_IO_COMPLETE(PlatformFileIOComplete);
 
 #define PLATFORM_ENTIRE_FILE_RESULT(name) PlatformEntireFile name(PlatformAsyncFileHandle* handle)
 typedef PLATFORM_ENTIRE_FILE_RESULT(PlatformEntireFileResult);
+
+#define PLATFORM_REGISTER_TEXTURE(name) void name(char* data, i32 width, i32 height, i32 channels, PlatformTextureHandle* handle)
+typedef PLATFORM_REGISTER_TEXTURE(PlatformRegisterTexture);
+
+#define PLATFORM_GET_TEXTURE_NATIVE_HANDLE(name) void* name(PlatformTextureHandle* handle)
+typedef PLATFORM_GET_TEXTURE_NATIVE_HANDLE(PlatformGetTextureNativeHandle);
 
 #define DEBUG_PLATFORM_FREE_FILE_MEMORY(name) void name(void* memory)
 typedef DEBUG_PLATFORM_FREE_FILE_MEMORY(DEBUG_PlatformFreeFileMemory);
@@ -151,6 +158,9 @@ struct PlatformServices {
     PlatformFileIOComplete* file_io_complete;
     PlatformEntireFileResult* entire_file_result;
     PlatformBeginReadEntireFile* begin_read_entire_file;
+
+    PlatformRegisterTexture* register_texture;
+    PlatformGetTextureNativeHandle* get_texture_native_handle;
 };
 
 struct PlatformRenderSettings {

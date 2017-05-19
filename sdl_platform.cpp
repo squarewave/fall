@@ -13,8 +13,12 @@
 #include <Windows.h>
 #endif
 
+#ifdef RENDERER_OPENGL
 #include "gl/glew.h"
 #include "gl/glu.h"
+#include "gl/gl.h"
+#endif
+
 #include "SDL2/SDL.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
@@ -109,21 +113,92 @@ PLATFORM_BEGIN_READ_ENTIRE_FILE(platform_begin_read_entire_file) {
     handle->file.contents = (unsigned char*)buffer;
     handle->file.content_size = (i32)file_size;
     handle->overlapped = overlapped;
+    handle->h_file = h_file;
 
     return true;
 }
 
 PLATFORM_FILE_IO_COMPLETE(platform_file_io_complete) {
     b32 result = handle->overlapped && HasOverlappedIoCompleted(handle->overlapped);
-    handle->overlapped = NULL;
+    if (result) {
+        handle->overlapped = NULL;
+        CloseHandle(handle->h_file);
+    }
     return result;
 }
 
 PLATFORM_ENTIRE_FILE_RESULT(platform_entire_file_result) {
     return handle->file;
 }
+#endif
+
+#ifdef RENDERER_OPENGL
+
+// TODO(doug): use BGRA?
+GLint get_internal_format(i32 channels) {
+    switch (channels) {
+        case 1: return GL_R8;
+        case 2: return GL_RG8;
+        case 4: return GL_RGBA8;
+        default:
+            LOG("Attempted to load image with %d channels", channels);
+            return GL_RGBA8;
+    }
+}
+
+GLenum get_format(i32 channels) {
+    switch (channels) {
+        case 1: return GL_RED;
+        case 2: return GL_RG;
+        case 4: return GL_RGBA;
+        default:
+            LOG("Attempted to load image with %d channels", channels);
+            return GL_RGBA8;
+    }
+}
+
+GLenum get_type(i32 channels) {
+    switch (channels) {
+        case 1: return GL_UNSIGNED_BYTE;
+        case 2: return GL_UNSIGNED_BYTE;
+        case 4: return GL_UNSIGNED_BYTE;
+        default:
+            LOG("Attempted to load image with %d channels", channels);
+            return GL_RGBA8;
+    }
+}
+
+PLATFORM_REGISTER_TEXTURE(platform_register_texture) {
+    glGenTextures(1, &handle->texture_id);
+    glBindTexture(GL_TEXTURE_2D, handle->texture_id);
+
+    GLint internal_format = get_internal_format(channels);
+    GLenum format = get_format(channels);
+    GLenum type = get_type(channels);
+
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 internal_format,
+                 width,
+                 height,
+                 0,
+                 format,
+                 type,
+                 (void*)data);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+}
+
+PLATFORM_GET_TEXTURE_NATIVE_HANDLE(platform_get_texture_native_handle) {
+    return (void*)(intptr_t)handle->texture_id;
+}
 
 #endif
+
 
 f32 get_seconds_elapsed(u64 old, u64 current) {
     return ((f32)(current - old) / (f32)(SDL_GetPerformanceFrequency()));
@@ -160,6 +235,8 @@ int CALLBACK WinMain(
     g_platform.begin_read_entire_file = platform_begin_read_entire_file;
     g_platform.file_io_complete = platform_file_io_complete;
     g_platform.entire_file_result = platform_entire_file_result;
+    g_platform.register_texture = platform_register_texture;
+    g_platform.get_texture_native_handle = platform_get_texture_native_handle;
 
     if (SDL_Init(SDL_INIT_EVERYTHING)) {
         LOG("Unable to init SDL: %s\n", SDL_GetError());

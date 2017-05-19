@@ -23,7 +23,16 @@ struct PlatformContext {
 #ifdef PLATFORM_WINDOWS
 struct PlatformAsyncFileHandle {
   OVERLAPPED* overlapped;
+  HANDLE h_file;
   PlatformEntireFile file;
+};
+#endif
+
+#ifdef RENDERER_OPENGL
+#include "gl/glew.h"
+
+struct PlatformTextureHandle {
+  GLuint texture_id;
 };
 #endif
 

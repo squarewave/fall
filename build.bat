@@ -8,14 +8,17 @@ set CommonLinkerFlags= -libpath:"..\libs\bin" -incremental:no -opt:ref user32.li
 IF NOT EXIST build mkdir build
 pushd build
 
+IF NOT EXIST assets mkdir assets
+
 del *.pdb > NUL 2> NUL
 
 REM 64-bit build
 cl %CommonCompilerFlags% -DTRANSLATION_UNIT_INDEX=2 ..\fall.cpp -Fmwin32_fall.map /link %CommonLinkerFlags%
 if %errorlevel% neq 0 goto :error
 
-cp ..\libs\bin\SDL2.dll .
-cp ..\libs\bin\glew32.dll .
+cp ../libs/bin/SDL2.dll .
+cp ../libs/bin/glew32.dll .
+cp ../assets/* ./assets
 popd
 goto :EOF
 
