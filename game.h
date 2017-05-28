@@ -6,9 +6,11 @@
 struct GameState {
   b32 initialized;
   b32 dummy_image_loaded;
-  PlatformTextureHandle dummy_texture_handle;
+  PlatformTexture dummy_texture;
   PlatformEntireFile dummy_file_result;
-  PlatformAsyncFileHandle dummy_file_handle;
+  void* dummy_file_handle;
+  char* dummy_texture_bitmap;
+  int dummy_texture_bitmap_size;
   char file_name_input[64];
 };
 

@@ -1,39 +1,40 @@
-#include "platform.h"
-#include "game.h"
+#include "assert.h"
 
+#include "imgui/imgui.h"
 #include "stb/stb_image.h"
 
-void game_update_and_render() {
-  static i32 counter = 0;
-  if (!g_game_state->initialized) {
-    g_game_state->initialized = true;
+#include "platform.h"
+#include "game.h"
+#include "imgui_extensions.h"
+#include "render_commands.h"
+#include "imgui_memory_editor.h"
+#include "assets.h"
+#include "asset_manager.h"
 
-    g_platform.begin_read_entire_file("assets/img_test.png", &g_game_state->dummy_file_handle);
+void game_update_and_render() {
+  if (!g_game_state->initialized) {
+    assets_init();
+    g_game_state->initialized = true;
+    set_camera_position(&g_render_commands, 0.0f, 0.0f);
+    set_camera_scale(&g_render_commands, 160.0f, 90.0f);
   }
+
+
+  AssetAttributes attrs = {};
+  attrs.direction = AssetDirection_left;
+  attrs.move_state = AssetMoveState_standing;
+  attrs.tracking_id = 1;
+  TextureAsset tex = assets_get_texture(AssetType_player, attrs);
+  push_textured_quad(&g_render_commands,
+                     tex.handle,
+                     tex.left, tex.bottom, 0.0f, 0.0f, 0xffffffff,
+                     tex.right, tex.bottom, 20.0f, 0.0f, 0xffffffff,
+                     tex.left, tex.top, 0.0f, 20.0f, 0xffffffff,
+                     tex.right, tex.top, 20.0f, 20.0f, 0xffffffff);
 
   if (ImGui::InputText("", g_game_state->file_name_input, 64)) {
     ImGui::Text("Hello, world!");
   }
 
-  if (g_platform.file_io_complete(&g_game_state->dummy_file_handle)) {
-    g_game_state->dummy_file_result = g_platform.entire_file_result(&g_game_state->dummy_file_handle);
-
-    PlatformEntireFile file = g_game_state->dummy_file_result;
-    i32 x,y,n;
-    char *data = (char*)stbi_load_from_memory(file.contents, file.content_size, &x, &y, &n, 0);
-    g_platform.register_texture(data, x, y, n, &g_game_state->dummy_texture_handle);
-
-    g_game_state->dummy_image_loaded = true;
-    stbi_image_free(data);
-  }
-
-  if (g_game_state->dummy_image_loaded) {
-    void* native_handle = g_platform.get_texture_native_handle(&g_game_state->dummy_texture_handle);
-    ImGui::Image(native_handle, ImVec2(128,128));
-  }
-
-  if (g_game_state->dummy_file_result.contents) {
-    ImGui::Text((const char *)g_game_state->dummy_file_result.contents);
-  }
   ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 }

@@ -28,12 +28,4 @@ struct PlatformAsyncFileHandle {
 };
 #endif
 
-#ifdef RENDERER_OPENGL
-#include "gl/glew.h"
-
-struct PlatformTextureHandle {
-  GLuint texture_id;
-};
-#endif
-
 #endif /* end of include guard: SDL_PLATFORM_H__ */

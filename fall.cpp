@@ -1,9 +1,9 @@
-#define PLATFORM_WINDOWS
-#define RENDERER_OPENGL
-
 #include "sdl_platform.cpp"
 
 #include "game.cpp"
+#include "imgui_extensions.cpp"
+#include "render_commands.cpp"
+#include "asset_manager.cpp"
 
 #include "imgui/imgui.cpp"
 #include "imgui/imgui_draw.cpp"
@@ -14,3 +14,7 @@
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb/stb_image_write.h"
+
+#ifdef RENDERER_OPENGL
+#include "renderer_opengl.cpp"
+#endif
