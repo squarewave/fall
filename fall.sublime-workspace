@@ -4,6 +4,26 @@
 		"selected_items":
 		[
 			[
+				"com",
+				"completion_routine"
+			],
+			[
+				"t",
+				"top\tint top"
+			],
+			[
+				"stbi_fr",
+				"stbi_image_free\tvoid stbi_image_free(void *retval_from_stbi_load)"
+			],
+			[
+				"as",
+				"asset_types_to_atlas_textures\tvoid * asset_types_to_atlas_textures"
+			],
+			[
+				"ass",
+				"asset_type"
+			],
+			[
 				"main",
 				"main_archive_async_handle\tvoid * main_archive_async_handle"
 			],
@@ -494,26 +514,6 @@
 			[
 				"hang",
 				"hangStatsCanvas"
-			],
-			[
-				"han",
-				"hangStatsTimeSeriesDictified"
-			],
-			[
-				"hangstatti",
-				"hangStatsTimeSeriesResponse"
-			],
-			[
-				"run",
-				"runnablestr"
-			],
-			[
-				"chroe",
-				"chromeGlobal"
-			],
-			[
-				"RES_COLO",
-				"RES_COLOR_PICKER_VERTEX_MODELSPACE"
 			]
 		]
 	},
@@ -532,7 +532,16 @@
 			"file": "sdl_platform.cpp",
 			"settings":
 			{
-				"buffer_size": 12771,
+				"buffer_size": 12050,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "sdl_platform_input.h",
+			"settings":
+			{
+				"buffer_size": 6685,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -550,7 +559,7 @@
 			"file": "fall.sublime-project",
 			"settings":
 			{
-				"buffer_size": 97,
+				"buffer_size": 154,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -568,7 +577,7 @@
 			"file": "game.cpp",
 			"settings":
 			{
-				"buffer_size": 3606,
+				"buffer_size": 1282,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -583,14 +592,6 @@
 			}
 		},
 		{
-			"file": "libs/include/Judy.h",
-			"settings":
-			{
-				"buffer_size": 28031,
-				"line_ending": "Unix"
-			}
-		},
-		{
 			"settings":
 			{
 				"buffer_size": 0,
@@ -601,8 +602,16 @@
 			"file": "asset_manager.cpp",
 			"settings":
 			{
-				"buffer_size": 1041,
+				"buffer_size": 2957,
 				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "libs/include/Judy.h",
+			"settings":
+			{
+				"buffer_size": 28038,
 				"line_ending": "Unix"
 			}
 		},
@@ -610,7 +619,7 @@
 			"file": "build_packager.bat",
 			"settings":
 			{
-				"buffer_size": 555,
+				"buffer_size": 531,
 				"encoding": "UTF-8",
 				"line_ending": "Windows"
 			}
@@ -619,7 +628,7 @@
 			"file": "asset_packager.cpp",
 			"settings":
 			{
-				"buffer_size": 6587,
+				"buffer_size": 6285,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -628,7 +637,7 @@
 			"file": "assets.h",
 			"settings":
 			{
-				"buffer_size": 1439,
+				"buffer_size": 1534,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -726,7 +735,7 @@
 			"file": "geometry.h",
 			"settings":
 			{
-				"buffer_size": 152,
+				"buffer_size": 175,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -769,7 +778,7 @@
 			"file": "build.bat",
 			"settings":
 			{
-				"buffer_size": 822,
+				"buffer_size": 765,
 				"encoding": "UTF-8",
 				"line_ending": "Windows"
 			}
@@ -796,8 +805,16 @@
 			"file": "platform.h",
 			"settings":
 			{
-				"buffer_size": 7175,
+				"buffer_size": 6911,
 				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "key_mappings.h",
+			"settings":
+			{
+				"buffer_size": 1608,
 				"line_ending": "Unix"
 			}
 		}
@@ -894,9 +911,21 @@
 	"command_palette":
 	{
 		"height": 354.0,
-		"last_filter": "ins",
+		"last_filter": "reind",
 		"selected_items":
 		[
+			[
+				"reind",
+				"ReIndent: to 2"
+			],
+			[
+				"rein",
+				"ReIndent: to 2"
+			],
+			[
+				"inst",
+				"Package Control: Install Package"
+			],
 			[
 				"ins",
 				"Package Control: Install Package"
@@ -908,10 +937,6 @@
 			[
 				"eas",
 				"EasyClangComplete: Settings"
-			],
-			[
-				"inst",
-				"Package Control: Install Package"
 			],
 			[
 				"install",
@@ -996,10 +1021,13 @@
 	"expanded_folders":
 	[
 		"/C/Users/doug/Documents/github/fall",
-		"/C/Users/doug/Documents/github/fall/assets"
+		"/C/Users/doug/Documents/github/fall/assets",
+		"/C/Users/doug/Documents/github/fall/build",
+		"/C/Users/doug/Documents/github/fall/build/assets"
 	],
 	"file_history":
 	[
+		"/C/Users/doug/Documents/github/fall/build/assets/test_temp.bin",
 		"/C/Users/doug/Documents/github/fall/asset_packager.h",
 		"/C/Users/doug/Documents/github/fall/stb/stb_rect_pack.h",
 		"/C/Users/doug/Documents/github/fall/packager/stb_image_write.h",
@@ -1126,8 +1154,7 @@
 		"/C/Users/doug/mercurial/firefox/browser/base/content/test/appUpdate/downloadPage.html",
 		"/C/Users/doug/c_tools/test.c",
 		"/C/Users/doug/mercurial/firefox/layout/reftests/box-shadow/boxshadow-inset-large-offset-ref.html",
-		"/C/Users/doug/mercurial/firefox/toolkit/mozapps/update/tests/chrome/update.sjs",
-		"/C/Users/doug/mercurial/firefox/browser/base/content/test/webrtc/browser_devices_get_user_media.js"
+		"/C/Users/doug/mercurial/firefox/toolkit/mozapps/update/tests/chrome/update.sjs"
 	],
 	"find":
 	{
@@ -1153,6 +1180,16 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"dt\\b",
+			"Word_t",
+			"_WORD_T",
+			"unsigned long",
+			"J_1P",
+			"top",
+			"pinsert",
+			"s",
+			"image",
+			"packed_image",
 			"texture",
 			"2000.0f",
 			"20.0f",
@@ -1270,17 +1307,7 @@
 			"AlphaThreshold",
 			"TextureSampler",
 			"push_program",
-			"width",
-			"x",
-			"0",
-			"c",
-			"u",
-			"f32 r",
-			"0",
-			"camera",
-			"0",
-			"RenderGroup",
-			"quad_textures"
+			"width"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1304,7 +1331,7 @@
 	"groups":
 	[
 		{
-			"selected": 9,
+			"selected": 24,
 			"sheets":
 			[
 				{
@@ -1336,7 +1363,7 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 24,
+					"stack_index": 30,
 					"type": "text"
 				},
 				{
@@ -1345,15 +1372,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 12771,
+						"buffer_size": 12050,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1146,
-								1146
+								607,
+								607
 							]
 						],
 						"settings":
@@ -1361,18 +1388,50 @@
 							"glslvalidator_configured": true,
 							"glslvalidator_enabled": 1,
 							"syntax": "Packages/C++/C++.sublime-syntax",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
+							"tab_size": 2,
+							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 776.0,
+						"translation.y": 302.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 15,
+					"stack_index": 11,
 					"type": "text"
 				},
 				{
 					"buffer": 2,
+					"file": "sdl_platform_input.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 6685,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								611,
+								611
+							]
+						],
+						"settings":
+						{
+							"glslvalidator_configured": true,
+							"glslvalidator_enabled": 1,
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 9,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
 					"file": "sdl_platform.h",
 					"semi_transient": false,
 					"settings":
@@ -1400,24 +1459,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 8,
+					"stack_index": 10,
 					"type": "text"
 				},
 				{
-					"buffer": 3,
+					"buffer": 4,
 					"file": "fall.sublime-project",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 97,
+						"buffer_size": 154,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								70,
-								70
+								147,
+								147
 							]
 						],
 						"settings":
@@ -1430,11 +1489,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 28,
+					"stack_index": 14,
 					"type": "text"
 				},
 				{
-					"buffer": 4,
+					"buffer": 5,
 					"file": ".clang_complete",
 					"semi_transient": false,
 					"settings":
@@ -1460,24 +1519,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 4,
+					"stack_index": 22,
 					"type": "text"
 				},
 				{
-					"buffer": 5,
+					"buffer": 6,
 					"file": "game.cpp",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 3606,
+						"buffer_size": 1282,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								531,
-								531
+								321,
+								321
 							]
 						],
 						"settings":
@@ -1489,14 +1548,14 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 162.0,
+						"translation.y": 108.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 7,
+					"stack_index": 2,
 					"type": "text"
 				},
 				{
-					"buffer": 6,
+					"buffer": 7,
 					"file": "asset_manager.h",
 					"semi_transient": false,
 					"settings":
@@ -1508,8 +1567,8 @@
 						"selection":
 						[
 							[
-								197,
-								197
+								25,
+								25
 							]
 						],
 						"settings":
@@ -1522,39 +1581,7 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 2,
-					"type": "text"
-				},
-				{
-					"buffer": 7,
-					"file": "libs/include/Judy.h",
-					"semi_transient": true,
-					"settings":
-					{
-						"buffer_size": 28031,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								0,
-								0
-							]
-						],
-						"settings":
-						{
-							"glslvalidator_configured": true,
-							"glslvalidator_enabled": 1,
-							"syntax": "Packages/C++/C++.sublime-syntax",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 5,
+					"stack_index": 21,
 					"type": "text"
 				},
 				{
@@ -1584,7 +1611,7 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 11,
+					"stack_index": 24,
 					"type": "text"
 				},
 				{
@@ -1593,15 +1620,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1041,
+						"buffer_size": 2957,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1041,
-								1041
+								2428,
+								2428
 							]
 						],
 						"settings":
@@ -1611,27 +1638,59 @@
 							"syntax": "Packages/C++/C++.sublime-syntax"
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 398.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 0,
+					"stack_index": 16,
 					"type": "text"
 				},
 				{
 					"buffer": 10,
-					"file": "build_packager.bat",
+					"file": "libs/include/Judy.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 555,
+						"buffer_size": 28038,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								488,
-								488
+								24130,
+								24130
+							]
+						],
+						"settings":
+						{
+							"glslvalidator_configured": true,
+							"glslvalidator_enabled": 1,
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 9542.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 20,
+					"type": "text"
+				},
+				{
+					"buffer": 11,
+					"file": "build_packager.bat",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 531,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								357,
+								357
 							]
 						],
 						"settings":
@@ -1644,24 +1703,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 12,
+					"stack_index": 17,
 					"type": "text"
 				},
 				{
-					"buffer": 11,
+					"buffer": 12,
 					"file": "asset_packager.cpp",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 6587,
+						"buffer_size": 6285,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								4954,
-								4954
+								709,
+								709
 							]
 						],
 						"settings":
@@ -1669,31 +1728,31 @@
 							"glslvalidator_configured": true,
 							"glslvalidator_enabled": 1,
 							"syntax": "Packages/C++/C++.sublime-syntax",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
+							"tab_size": 2,
+							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 2819.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 6,
+					"stack_index": 15,
 					"type": "text"
 				},
 				{
-					"buffer": 12,
+					"buffer": 13,
 					"file": "assets.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1439,
+						"buffer_size": 1534,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1360,
-								1379
+								770,
+								770
 							]
 						],
 						"settings":
@@ -1703,14 +1762,14 @@
 							"syntax": "Packages/C++/C++.sublime-syntax"
 						},
 						"translation.x": 0.0,
-						"translation.y": 378.0,
+						"translation.y": 270.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 1,
+					"stack_index": 19,
 					"type": "text"
 				},
 				{
-					"buffer": 13,
+					"buffer": 14,
 					"file": "imgui.ini",
 					"semi_transient": false,
 					"settings":
@@ -1736,11 +1795,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 16,
+					"stack_index": 3,
 					"type": "text"
 				},
 				{
-					"buffer": 14,
+					"buffer": 15,
 					"file": "imgui_memory_editor.h",
 					"semi_transient": false,
 					"settings":
@@ -1752,8 +1811,8 @@
 						"selection":
 						[
 							[
-								6562,
-								6562
+								5881,
+								5881
 							]
 						],
 						"settings":
@@ -1768,11 +1827,11 @@
 						"translation.y": 1683.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 18,
+					"stack_index": 6,
 					"type": "text"
 				},
 				{
-					"buffer": 15,
+					"buffer": 16,
 					"file": "render_commands.h",
 					"semi_transient": false,
 					"settings":
@@ -1800,11 +1859,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 14,
+					"stack_index": 26,
 					"type": "text"
 				},
 				{
-					"buffer": 16,
+					"buffer": 17,
 					"file": "renderer_opengl.h",
 					"semi_transient": false,
 					"settings":
@@ -1829,14 +1888,14 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 56.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 22,
+					"stack_index": 13,
 					"type": "text"
 				},
 				{
-					"buffer": 17,
+					"buffer": 18,
 					"file": "renderer_opengl.cpp",
 					"semi_transient": false,
 					"settings":
@@ -1864,11 +1923,11 @@
 						"translation.y": 2275.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 19,
+					"stack_index": 12,
 					"type": "text"
 				},
 				{
-					"buffer": 18,
+					"buffer": 19,
 					"file": "shaders/common.glsl",
 					"semi_transient": false,
 					"settings":
@@ -1894,11 +1953,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 21,
+					"stack_index": 28,
 					"type": "text"
 				},
 				{
-					"buffer": 19,
+					"buffer": 20,
 					"file": "shaders/textured_quads.glsl",
 					"semi_transient": false,
 					"settings":
@@ -1926,11 +1985,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 20,
+					"stack_index": 27,
 					"type": "text"
 				},
 				{
-					"buffer": 20,
+					"buffer": 21,
 					"file": "render_commands.cpp",
 					"semi_transient": false,
 					"settings":
@@ -1958,11 +2017,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 13,
+					"stack_index": 25,
 					"type": "text"
 				},
 				{
-					"buffer": 21,
+					"buffer": 22,
 					"semi_transient": false,
 					"settings":
 					{
@@ -24015,11 +24074,11 @@
 						"translation.y": 186805.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 25,
+					"stack_index": 31,
 					"type": "text"
 				},
 				{
-					"buffer": 22,
+					"buffer": 23,
 					"file": "imgui/imgui_impl_sdl_gl3.cpp",
 					"semi_transient": false,
 					"settings":
@@ -24047,24 +24106,24 @@
 						"translation.y": 1088.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 23,
+					"stack_index": 29,
 					"type": "text"
 				},
 				{
-					"buffer": 23,
+					"buffer": 24,
 					"file": "geometry.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 152,
+						"buffer_size": 175,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								99,
-								99
+								125,
+								125
 							]
 						],
 						"settings":
@@ -24078,11 +24137,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 29,
+					"stack_index": 0,
 					"type": "text"
 				},
 				{
-					"buffer": 24,
+					"buffer": 25,
 					"file": "game.h",
 					"semi_transient": false,
 					"settings":
@@ -24108,11 +24167,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 17,
+					"stack_index": 1,
 					"type": "text"
 				},
 				{
-					"buffer": 25,
+					"buffer": 26,
 					"file": "imgui/imgui.cpp",
 					"semi_transient": false,
 					"settings":
@@ -24140,11 +24199,11 @@
 						"translation.y": 102511.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 31,
+					"stack_index": 33,
 					"type": "text"
 				},
 				{
-					"buffer": 26,
+					"buffer": 27,
 					"file": "imgui/imgui.h",
 					"semi_transient": false,
 					"settings":
@@ -24172,11 +24231,11 @@
 						"translation.y": 4267.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 30,
+					"stack_index": 32,
 					"type": "text"
 				},
 				{
-					"buffer": 27,
+					"buffer": 28,
 					"file": "fall.cpp",
 					"semi_transient": false,
 					"settings":
@@ -24202,24 +24261,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 10,
+					"stack_index": 23,
 					"type": "text"
 				},
 				{
-					"buffer": 28,
+					"buffer": 29,
 					"file": "build.bat",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 822,
+						"buffer_size": 765,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								499,
-								499
+								424,
+								424
 							]
 						],
 						"settings":
@@ -24232,11 +24291,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 3,
+					"stack_index": 18,
 					"type": "text"
 				},
 				{
-					"buffer": 29,
+					"buffer": 30,
 					"file": "imgui_extensions.h",
 					"semi_transient": false,
 					"settings":
@@ -24262,11 +24321,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 26,
+					"stack_index": 5,
 					"type": "text"
 				},
 				{
-					"buffer": 30,
+					"buffer": 31,
 					"file": "imgui_extensions.cpp",
 					"semi_transient": false,
 					"settings":
@@ -24292,24 +24351,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 27,
+					"stack_index": 4,
 					"type": "text"
 				},
 				{
-					"buffer": 31,
+					"buffer": 32,
 					"file": "platform.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 7175,
+						"buffer_size": 6911,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								3884,
-								3892
+								1651,
+								1651
 							]
 						],
 						"settings":
@@ -24317,14 +24376,44 @@
 							"glslvalidator_configured": true,
 							"glslvalidator_enabled": 1,
 							"syntax": "Packages/C++/C++.sublime-syntax",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
+							"tab_size": 2,
+							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 2288.0,
+						"translation.y": 1553.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 9,
+					"stack_index": 8,
+					"type": "text"
+				},
+				{
+					"buffer": 33,
+					"file": "key_mappings.h",
+					"semi_transient": true,
+					"settings":
+					{
+						"buffer_size": 1608,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"glslvalidator_configured": true,
+							"glslvalidator_enabled": 1,
+							"syntax": "Packages/C++/C++.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 7,
 					"type": "text"
 				}
 			]
@@ -24384,11 +24473,51 @@
 		[
 			[
 				"",
-				"asset_manager.cpp"
+				"sdl_platform.cpp"
+			],
+			[
+				"ga",
+				"game.cpp"
+			],
+			[
+				"sub",
+				"fall.sublime-project"
 			],
 			[
 				"ass",
-				"assets.h"
+				"asset_packager.cpp"
+			],
+			[
+				"sdl",
+				"sdl_platform.cpp"
+			],
+			[
+				"sd",
+				"sdl_platform.cpp"
+			],
+			[
+				"plat",
+				"sdl_platform.cpp"
+			],
+			[
+				"assena",
+				"asset_manager.cpp"
+			],
+			[
+				"bui",
+				"build.bat"
+			],
+			[
+				"gam",
+				"game.cpp"
+			],
+			[
+				"asse",
+				"asset_manager.cpp"
+			],
+			[
+				"assetpa",
+				"asset_packager.cpp"
 			],
 			[
 				"assetma",
@@ -24415,20 +24544,12 @@
 				"asset_packager.h"
 			],
 			[
-				"ga",
-				"game.cpp"
-			],
-			[
 				"render",
 				"render_commands.cpp"
 			],
 			[
 				"assetpac",
 				"packager\\asset_packager.h"
-			],
-			[
-				"gam",
-				"game.cpp"
 			],
 			[
 				"stb_re",
@@ -24495,14 +24616,6 @@
 				"render_commands.h"
 			],
 			[
-				"bui",
-				"build.bat"
-			],
-			[
-				"sdl",
-				"sdl_platform.cpp"
-			],
-			[
 				"renderer",
 				"renderer_opengl.cpp"
 			],
@@ -24521,10 +24634,6 @@
 			[
 				"fall.su",
 				"fall.sublime-project"
-			],
-			[
-				"sd",
-				"sdl_platform.cpp"
 			],
 			[
 				"fa",
@@ -24549,10 +24658,6 @@
 			[
 				"game.h",
 				"game.h"
-			],
-			[
-				"plat",
-				"platform.h"
 			],
 			[
 				"option",
@@ -24877,22 +24982,6 @@
 			[
 				"paneluinot",
 				"browser\\components\\customizableui\\test\\browser_panelUINotifications.js"
-			],
-			[
-				"panelui.xu",
-				"browser\\components\\customizableui\\content\\panelUI.inc.xul"
-			],
-			[
-				"browser.xu",
-				"browser\\base\\content\\browser.xul"
-			],
-			[
-				"ext_commands_",
-				"browser\\components\\extensions\\test\\browser\\browser_ext_commands_onCommand.js"
-			],
-			[
-				"browser_popupnot",
-				"browser\\base\\content\\test\\popupNotifications\\browser_popupNotification_5.js"
 			]
 		],
 		"width": 0.0
@@ -24913,9 +25002,13 @@
 	"select_symbol":
 	{
 		"height": 354.0,
-		"last_filter": "platformas",
+		"last_filter": "beginre",
 		"selected_items":
 		[
+			[
+				"beginre",
+				"PLATFORM_BEGIN_READ_ENTIRE_FILE"
+			],
 			[
 				"platformas",
 				"PlatformAsyncFileHandle"

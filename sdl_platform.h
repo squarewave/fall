@@ -20,12 +20,14 @@ struct PlatformContext {
     PlatformInput* prev_input;
 };
 
-#ifdef PLATFORM_WINDOWS
 struct PlatformAsyncFileHandle {
-  OVERLAPPED* overlapped;
-  HANDLE h_file;
+  SDL_atomic_t ready;
   PlatformEntireFile file;
 };
-#endif
+
+struct PlatformFileIORequest {
+  char* filename;
+  PlatformAsyncFileHandle* result;
+};
 
 #endif /* end of include guard: SDL_PLATFORM_H__ */

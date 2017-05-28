@@ -19,7 +19,6 @@ void game_update_and_render() {
     set_camera_scale(&g_render_commands, 160.0f, 90.0f);
   }
 
-
   AssetAttributes attrs = {};
   attrs.direction = AssetDirection_left;
   attrs.move_state = AssetMoveState_standing;

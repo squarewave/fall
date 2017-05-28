@@ -15,6 +15,9 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb/stb_image_write.h"
 
+#define JOBTHIEF_IMPLEMENTATION
+#include "jobthief.h"
+
 #ifdef RENDERER_OPENGL
 #include "renderer_opengl.cpp"
 #endif

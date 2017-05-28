@@ -22,6 +22,7 @@
 #include "SDL2/SDL.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
+#include "jobthief.h"
 
 #include "platform.h"
 #include "sdl_platform.h"
@@ -87,66 +88,60 @@ DEBUG_PLATFORM_WRITE_ENTIRE_FILE(DEBUG_platform_write_entire_file) {
 
 #ifdef PLATFORM_WINDOWS
 
+void readfile_job(jt_job_data* job) {
+	auto request = (PlatformFileIORequest*)job->padding;
+	char* filename = request->filename;
+
+  FILE *f = fopen(filename, "rb");
+
+  if (f == 0) {
+    LOG("Failed to open file %s\n", filename);
+    exit(1);
+  }
+
+  fseek(f, 0, SEEK_END);
+  long fsize = ftell(f);
+  fseek(f, 0, SEEK_SET);
+
+  char* string = (char*)malloc(fsize + 1);
+  if (!fread(string, fsize, 1, f)) {
+    LOG("No results from fread\n");
+  }
+  fclose(f);
+
+  string[fsize] = 0;
+
+  PlatformAsyncFileHandle* result = request->result;
+  result->file.contents = (u8 *)string;
+  result->file.content_size = (u32)fsize;
+
+  SDL_AtomicSet(&result->ready, true);
+}
+
 PLATFORM_BEGIN_READ_ENTIRE_FILE(platform_begin_read_entire_file) {
-  // TODO(doug): this doesn't actually work asynchronously right now.
-
-  HANDLE h_file = CreateFile(filename,
-                             GENERIC_READ,
-                             0,
-                             NULL,
-                             OPEN_EXISTING,
-                             FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
-                             NULL);
-
-  if (h_file == INVALID_HANDLE_VALUE) {
-    LOG("INVALID_HANDLE_VALUE: %d\n", GetLastError());
-    return 0;
-  }
-
-  i64 file_size = 0;
-  b32 success = GetFileSizeEx(h_file, (PLARGE_INTEGER)&file_size);
-
-  if (!success) {
-    LOG("GetFileSizeEx failure: %d\n", GetLastError());
-    return 0;
-  }
-
-  OVERLAPPED* overlapped = (OVERLAPPED*)calloc(1, sizeof(OVERLAPPED));
-  auto handle = (PlatformAsyncFileHandle*)malloc(sizeof(PlatformAsyncFileHandle) + file_size);
-  auto buffer = (void*)(handle + 1);
-  ReadFile(h_file,
-           buffer,
-           file_size,
-           NULL,
-           overlapped);
-
-  handle->file.contents = (unsigned char*)buffer;
-  handle->file.content_size = (i32)file_size;
-  handle->overlapped = overlapped;
-  handle->h_file = h_file;
-
-  return handle;
+	PlatformFileIORequest request;
+	request.filename = (char*)filename;
+	request.result = (PlatformAsyncFileHandle*)calloc(1, sizeof(PlatformAsyncFileHandle));
+	auto job = jt_create_job(readfile_job, (void*)&request, sizeof(PlatformFileIORequest));
+	jt_run_job(job, false);
+	return request.result;
 }
 
 PLATFORM_FILE_IO_COMPLETE(platform_file_io_complete) {
-  auto typed = (PlatformAsyncFileHandle*)handle;
-  b32 result = typed->overlapped && HasOverlappedIoCompleted(typed->overlapped);
-  if (result) {
-    free(typed->overlapped);
-    typed->overlapped = NULL;
-  }
-  return result;
+	PlatformAsyncFileHandle* result = (PlatformAsyncFileHandle*)handle;
+	return SDL_AtomicGet(&result->ready);
 }
 
 PLATFORM_ENTIRE_FILE_RESULT(platform_entire_file_result) {
-  auto typed = (PlatformAsyncFileHandle*)handle;
-  CloseHandle(typed->h_file);
-  return typed->file;
+	PlatformAsyncFileHandle* result = (PlatformAsyncFileHandle*)handle;
+	assert(SDL_AtomicGet(&result->ready));
+	return result->file;
 }
 
 PLATFORM_FREE_FILE_MEMORY(platform_free_file_memory) {
-  auto typed = (PlatformAsyncFileHandle*)handle;
-  free(typed->file.contents);
+	PlatformAsyncFileHandle* result = (PlatformAsyncFileHandle*)handle;
+	free(result->file.contents);
+	free(result);
 }
 
 #endif
@@ -261,6 +256,8 @@ int CALLBACK WinMain(
   g_platform.free_file_memory = platform_free_file_memory;
   g_platform.register_texture = platform_register_texture;
 
+  jt_init();
+
   if (SDL_Init(SDL_INIT_EVERYTHING)) {
     LOG("Unable to init SDL: %s\n", SDL_GetError());
     exit_gracefully(1);
@@ -337,6 +334,7 @@ int CALLBACK WinMain(
 
   u64 last_counter = SDL_GetPerformanceCounter();
   const f32 target_seconds_per_frame = 1.0f / (f32)FRAME_RATE;
+
 
   while(running) {
     // TIMED_BLOCK(allotted_time);
