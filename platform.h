@@ -128,7 +128,11 @@ struct PlatformTexture {
   void* handle;
 };
 
-#define PLATFORM_BEGIN_READ_ENTIRE_FILE(name) void* name(const char* filename)
+struct PlatformFileLastWriteTime {
+	char platform_data[8];
+};
+
+#define PLATFORM_BEGIN_READ_ENTIRE_FILE(name) void* name(char* filename)
 typedef PLATFORM_BEGIN_READ_ENTIRE_FILE(PlatformBeginReadEntireFile);
 
 #define PLATFORM_FILE_IO_COMPLETE(name) b32 name(void* handle)
@@ -140,16 +144,25 @@ typedef PLATFORM_ENTIRE_FILE_RESULT(PlatformEntireFileResult);
 #define PLATFORM_FREE_FILE_MEMORY(name) void name(void* handle)
 typedef PLATFORM_FREE_FILE_MEMORY(PlatformFreeFileMemory);
 
+#define PLATFORM_GET_LAST_WRITE_TIME(name) PlatformFileLastWriteTime name(char* filename)
+typedef PLATFORM_GET_LAST_WRITE_TIME(PlatformGetLastWriteTime);
+
+#define PLATFORM_FILE_HAS_BEEN_TOUCHED(name) b32 name(char* filename, PlatformFileLastWriteTime* last_write_time)
+typedef PLATFORM_FILE_HAS_BEEN_TOUCHED(PlatformFileHasBeenTouched);
+
 #define PLATFORM_REGISTER_TEXTURE(name) PlatformTexture name(char* data, i32 width, i32 height, i32 channels)
 typedef PLATFORM_REGISTER_TEXTURE(PlatformRegisterTexture);
+
+#define PLATFORM_UNREGISTER_TEXTURE(name) void name(void* texture_handle)
+typedef PLATFORM_UNREGISTER_TEXTURE(PlatformUnregisterTexture);
 
 #define DEBUG_PLATFORM_FREE_FILE_MEMORY(name) void name(void* memory)
 typedef DEBUG_PLATFORM_FREE_FILE_MEMORY(DEBUG_PlatformFreeFileMemory);
 
-#define DEBUG_PLATFORM_READ_ENTIRE_FILE(name) PlatformEntireFile name(const char* filename)
+#define DEBUG_PLATFORM_READ_ENTIRE_FILE(name) PlatformEntireFile name(char* filename)
 typedef DEBUG_PLATFORM_READ_ENTIRE_FILE(DEBUG_PlatformReadEntireFile);
 
-#define DEBUG_PLATFORM_WRITE_ENTIRE_FILE(name) b32 name(const char* filename, i32 size, void* memory)
+#define DEBUG_PLATFORM_WRITE_ENTIRE_FILE(name) b32 name(char* filename, i32 size, void* memory)
 typedef DEBUG_PLATFORM_WRITE_ENTIRE_FILE(DEBUG_PlatformWriteEntireFile);
 
 struct PlatformServices {
@@ -161,8 +174,11 @@ struct PlatformServices {
   PlatformEntireFileResult* entire_file_result;
   PlatformBeginReadEntireFile* begin_read_entire_file;
   PlatformFreeFileMemory* free_file_memory;
+  PlatformGetLastWriteTime* get_last_write_time;
+  PlatformFileHasBeenTouched* file_has_been_touched;
 
   PlatformRegisterTexture* register_texture;
+  PlatformUnregisterTexture* unregister_texture;
 };
 
 struct PlatformRenderSettings {

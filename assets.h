@@ -12,6 +12,8 @@ enum AssetDirection {
   AssetDirection_unspecified = 0,
   AssetDirection_left,
   AssetDirection_right,
+  AssetDirection_forward,
+  AssetDirection_backward,
 
   AssetDirection_count,
 };
@@ -27,10 +29,26 @@ enum AssetMoveState {
   AssetMoveState_count,
 };
 
+enum AssetClass {
+  AssetClass_unspecified = 0,
+  AssetClass_science,
+
+  AssetClass_count,
+};
+
+enum AssetColor {
+  AssetColor_unspecified = 0,
+  AssetColor_dark,
+  AssetColor_light,
+  AssetColor_caramel,
+  AssetColor_blue,
+
+  AssetColor_count,
+};
+
 enum AssetType {
   AssetType_unspecified = 0,
-  AssetType_player,
-  AssetType_dog,
+  AssetType_crew,
 
   AssetType_count,
 };
@@ -38,12 +56,15 @@ enum AssetType {
 struct AssetAttributes {
   AssetDirection direction;
   AssetMoveState move_state;
+  AssetClass asset_class;
+  AssetColor color;
   i64 tracking_id;
 };
 
 struct TextureAsset {
   void* handle;
   f32 left, right, top, bottom;
+  i32 px_width, px_height;
 };
 
 enum ArchiveEntryType {
@@ -56,6 +77,7 @@ enum ArchiveEntryType {
 struct PackedTexture {
   int top, left, bottom, right;
   AssetType asset_type;
+  AssetAttributes attributes;
 };
 
 #pragma pack (1)

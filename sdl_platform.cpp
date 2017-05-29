@@ -88,9 +88,42 @@ DEBUG_PLATFORM_WRITE_ENTIRE_FILE(DEBUG_platform_write_entire_file) {
 
 #ifdef PLATFORM_WINDOWS
 
+inline FILETIME get_file_last_write_time(char* filepath) {
+  FILETIME last_write_time = {};
+
+  WIN32_FILE_ATTRIBUTE_DATA data;
+  if(GetFileAttributesEx(filepath, GetFileExInfoStandard, &data)) {
+      last_write_time = data.ftLastWriteTime;
+  }
+
+  return last_write_time;
+}
+
+inline b32 file_has_been_touched(char* filepath, FILETIME* filetime) {
+  FILETIME last_write = get_file_last_write_time(filepath);
+  b32 result = CompareFileTime(&last_write, filetime) != 0;
+  *filetime = last_write;
+  return result;
+}
+
+PLATFORM_GET_LAST_WRITE_TIME(platform_get_last_write_time) {
+  assert(sizeof(PlatformFileLastWriteTime) <= sizeof(FILETIME));
+  union {
+    FILETIME from;
+    PlatformFileLastWriteTime to;
+  } u;
+  u.from = get_file_last_write_time(filename);
+  return u.to;
+}
+
+PLATFORM_FILE_HAS_BEEN_TOUCHED(platform_file_has_been_touched) {
+  assert(sizeof(PlatformFileLastWriteTime) <= sizeof(FILETIME));
+  return file_has_been_touched(filename, (FILETIME*)(last_write_time));
+}
+
 void readfile_job(jt_job_data* job) {
-	auto request = (PlatformFileIORequest*)job->padding;
-	char* filename = request->filename;
+  auto request = (PlatformFileIORequest*)job->padding;
+  char* filename = request->filename;
 
   FILE *f = fopen(filename, "rb");
 
@@ -119,29 +152,29 @@ void readfile_job(jt_job_data* job) {
 }
 
 PLATFORM_BEGIN_READ_ENTIRE_FILE(platform_begin_read_entire_file) {
-	PlatformFileIORequest request;
-	request.filename = (char*)filename;
-	request.result = (PlatformAsyncFileHandle*)calloc(1, sizeof(PlatformAsyncFileHandle));
-	auto job = jt_create_job(readfile_job, (void*)&request, sizeof(PlatformFileIORequest));
-	jt_run_job(job, false);
-	return request.result;
+  PlatformFileIORequest request;
+  request.filename = (char*)filename;
+  request.result = (PlatformAsyncFileHandle*)calloc(1, sizeof(PlatformAsyncFileHandle));
+  auto job = jt_create_job(readfile_job, (void*)&request, sizeof(PlatformFileIORequest));
+  jt_run_job(job, false);
+  return request.result;
 }
 
 PLATFORM_FILE_IO_COMPLETE(platform_file_io_complete) {
-	PlatformAsyncFileHandle* result = (PlatformAsyncFileHandle*)handle;
-	return SDL_AtomicGet(&result->ready);
+  PlatformAsyncFileHandle* result = (PlatformAsyncFileHandle*)handle;
+  return SDL_AtomicGet(&result->ready);
 }
 
 PLATFORM_ENTIRE_FILE_RESULT(platform_entire_file_result) {
-	PlatformAsyncFileHandle* result = (PlatformAsyncFileHandle*)handle;
-	assert(SDL_AtomicGet(&result->ready));
-	return result->file;
+  PlatformAsyncFileHandle* result = (PlatformAsyncFileHandle*)handle;
+  assert(SDL_AtomicGet(&result->ready));
+  return result->file;
 }
 
 PLATFORM_FREE_FILE_MEMORY(platform_free_file_memory) {
-	PlatformAsyncFileHandle* result = (PlatformAsyncFileHandle*)handle;
-	free(result->file.contents);
-	free(result);
+  PlatformAsyncFileHandle* result = (PlatformAsyncFileHandle*)handle;
+  free(result->file.contents);
+  free(result);
 }
 
 #endif
@@ -155,7 +188,7 @@ GLint get_internal_format(i32 channels) {
     case 2: return GL_RG8;
     case 4: return GL_RGBA8;
     default:
-      LOG("Attempted to load image with %d channels", channels);
+      LOG("Attempted to load image with %d channels\n", channels);
       return GL_RGBA8;
   }
 }
@@ -166,7 +199,7 @@ GLenum get_format(i32 channels) {
     case 2: return GL_RG;
     case 4: return GL_RGBA;
     default:
-      LOG("Attempted to load image with %d channels", channels);
+      LOG("Attempted to load image with %d channels\n", channels);
       return GL_RGBA8;
   }
 }
@@ -177,9 +210,14 @@ GLenum get_type(i32 channels) {
     case 2: return GL_UNSIGNED_BYTE;
     case 4: return GL_UNSIGNED_BYTE;
     default:
-      LOG("Attempted to load image with %d channels", channels);
+      LOG("Attempted to load image with %d channels\n", channels);
       return GL_RGBA8;
   }
+}
+
+PLATFORM_UNREGISTER_TEXTURE(platform_unregister_texture) {
+  GLuint gl_texture = (GLuint)(intptr_t)(texture_handle);
+  glDeleteTextures(1, &gl_texture);
 }
 
 PLATFORM_REGISTER_TEXTURE(platform_register_texture) {
@@ -194,14 +232,14 @@ PLATFORM_REGISTER_TEXTURE(platform_register_texture) {
 
   glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
   glTexImage2D(GL_TEXTURE_2D,
-         0,
-         internal_format,
-         width,
-         height,
-         0,
-         format,
-         type,
-         (void*)data);
+               0,
+               internal_format,
+               width,
+               height,
+               0,
+               format,
+               type,
+               (void*)data);
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -255,6 +293,9 @@ int CALLBACK WinMain(
   g_platform.entire_file_result = platform_entire_file_result;
   g_platform.free_file_memory = platform_free_file_memory;
   g_platform.register_texture = platform_register_texture;
+  g_platform.unregister_texture = platform_unregister_texture;
+  g_platform.file_has_been_touched = platform_file_has_been_touched;
+  g_platform.get_last_write_time = platform_get_last_write_time;
 
   jt_init();
 

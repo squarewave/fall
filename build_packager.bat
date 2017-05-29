@@ -2,7 +2,7 @@
 
 rem call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
 
-set CommonCompilerFlags=-Zi -Od
+set CommonCompilerFlags=-Zi -O2 -DDEBUG_TEXTURE_ATLASES
 set CommonLinkerFlags= -incremental:no -opt:ref user32.lib gdi32.lib winmm.lib
 
 IF NOT EXIST build mkdir build

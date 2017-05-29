@@ -25,11 +25,14 @@ typedef uint32_t b32;
 typedef float f32;
 typedef double f64;
 
+#define ZERO(x) memset(&(x), 0, sizeof(x));
+
 const int MAX_CURRENT_BITMAPS = 1024;
 
 struct Bitmap {
   int width, height;
   AssetType asset_type;
+  AssetAttributes asset_attributes;
   u32* pixels;
 };
 
@@ -166,6 +169,7 @@ void end_archive() {
         packed_tex->top = rects[i].y;
         packed_tex->bottom = rects[i].y + rects[i].h;
         packed_tex->asset_type = b.asset_type;
+        packed_tex->attributes = b.asset_attributes;
 
         for (int y = 0; y < rects[i].h; ++y) {
           for (int x = 0; x < rects[i].w; ++x) {
@@ -184,6 +188,15 @@ void end_archive() {
     stbi_write_png_to_func(png_write_func, &written,
                  TEXTURE_ATLAS_DIAMETER, TEXTURE_ATLAS_DIAMETER, TEXTURE_CHANNELS,
                  temp_atlas_data, 0);
+
+#if 1
+    static int counter;
+    char buffer[64];
+    sprintf(buffer, "texture_debug_%d.png", counter++);
+    printf("Writing to %s\n", buffer);
+    write_entire_file(buffer, archive_mem_head - written, written);
+#endif
+
     atlas->png_size = written;
 
   } while (!all_packed);
@@ -194,7 +207,7 @@ void end_archive() {
   g_packager.current_archive = NULL;
 }
 
-void add_png(AssetType asset_type, char* filename) {
+void add_png(AssetType asset_type, AssetAttributes attrs, char* filename) {
   auto file = read_entire_file(filename);
   Bitmap bitmap = {0};
   int channels;
@@ -202,6 +215,7 @@ void add_png(AssetType asset_type, char* filename) {
                         &bitmap.width, &bitmap.height,
                         &channels, 4);
   bitmap.asset_type = asset_type;
+  bitmap.asset_attributes = attrs;
   free(file.contents);
   if (channels != 4) {
     printf("Wrong number of channels in %s: %d\n", filename, channels);
@@ -217,13 +231,15 @@ int main(int argc, char const *argv[]) {
   archive_mem_head = archive_mem;
   temp_atlas_data = (u32*)malloc(TEXTURE_ATLAS_SIZE_BYTES);
   assert(temp_atlas_data);
+  AssetAttributes attrs = {};
 
-  begin_archive((char*)"assets/test_images.pak");
-  add_png(AssetType_dog, (char*)"../assets/img_test.png");
-  add_png(AssetType_player, (char*)"../assets/img_test1.png");
-  add_png(AssetType_player, (char*)"../assets/img_test2.png");
-  add_png(AssetType_player, (char*)"../assets/img_test3.png");
-  add_png(AssetType_player, (char*)"../assets/img_test4.png");
+  begin_archive((char*)"build/assets/test_images.pak");
+  ZERO(attrs);
+  attrs.asset_class = AssetClass_science;
+  attrs.color = AssetColor_dark;
+  attrs.direction = AssetDirection_forward;
+  attrs.move_state = AssetMoveState_standing;
+  add_png(AssetType_crew, attrs, (char*)"assets/crew_science_dark_forward_standing.png");
   end_archive();
   return 0;
 }
