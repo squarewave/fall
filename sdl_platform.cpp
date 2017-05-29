@@ -209,6 +209,7 @@ GameCode load_game_code(char *source_dll_name, char *tmp_dll_name, char *lock_fi
       result.imgui_shutdown = (GameImguiShutdown*)GetProcAddress(result.dll, "game_imgui_shutdown");
       result.imgui_render = (GameImguiRender*)GetProcAddress(result.dll, "game_imgui_render");
       result.imgui_get_tex_data_as_rgba32 = (GameImguiGetTexDataAsRGBA32*)GetProcAddress(result.dll, "game_imgui_get_tex_data_as_rgba32");
+      result.debug_end_frame = (GameDebugEndFrame*)GetProcAddress(result.dll, "game_debug_end_frame");
       result.is_valid = result.update_and_render != NULL;
     }
   }
@@ -388,11 +389,11 @@ int CALLBACK WinMain(
 
   char source_dll_name[FILEPATH_SIZE] = {};
   memcpy(source_dll_name, context.exe_filepath, exe_directory_len);
-  strcpy(source_dll_name + exe_directory_len, "fall.dll");
+  strcpy(source_dll_name + exe_directory_len, "fall_game.dll");
 
   char temp_dll_name[FILEPATH_SIZE] = {};
   memcpy(temp_dll_name, context.exe_filepath, exe_directory_len);
-  strcpy(temp_dll_name + exe_directory_len, "fall_temp.dll");
+  strcpy(temp_dll_name + exe_directory_len, "fall_game_temp.dll");
 
   char lock_file_name[FILEPATH_SIZE] = {};
   memcpy(lock_file_name, context.exe_filepath, exe_directory_len);
@@ -475,19 +476,6 @@ int CALLBACK WinMain(
 
     last_counter = SDL_GetPerformanceCounter();
 
-#ifdef PLATFORM_WINDOWS
-    b32 reload_game_code = file_has_been_touched(source_dll_name, &game_code_last_touched);
-    if (reload_game_code) {
-      ImGui_ImplSdlGL3_Shutdown();
-      unload_game_code(&g_game_code);
-      for(i32 i = 0; !g_game_code.is_valid && (i < 100); ++i) {
-          g_game_code = load_game_code(source_dll_name, temp_dll_name, lock_file_name);
-          SDL_Delay(100);
-      }
-      ImGui_ImplSdlGL3_Init(context.window);
-    }
-#endif
-
     ZERO_STRUCT(next_input);
 
     for (int i = 0; i < ARRAY_LENGTH(next_input.buttons); ++i) {
@@ -547,7 +535,6 @@ int CALLBACK WinMain(
 
     ImGui_ImplSdlGL3_NewFrame(context.window);
     g_game_code.update_and_render(&game_memory);
-    show_debug_log();
 
     prev_input = next_input;
 
@@ -555,9 +542,25 @@ int CALLBACK WinMain(
     opengl_render_commands(g_render_commands, START_WIDTH, START_HEIGHT);
 #endif
     g_render_commands->vertex_count = 0;
-
+    g_game_code.debug_end_frame();
     g_game_code.imgui_render();
+
     SDL_GL_SwapWindow(context.window);
+
+#ifdef PLATFORM_WINDOWS
+    b32 reload_game_code = file_has_been_touched(source_dll_name, &game_code_last_touched);
+    if (reload_game_code) {
+      LOG("Reloading game code\n");
+      ImGui_ImplSdlGL3_Shutdown();
+      unload_game_code(&g_game_code);
+      for(i32 i = 0; !g_game_code.is_valid && (i < 100); ++i) {
+          g_game_code = load_game_code(source_dll_name, temp_dll_name, lock_file_name);
+          SDL_Delay(100);
+      }
+      game_code_last_touched = get_file_last_write_time(source_dll_name);
+      ImGui_ImplSdlGL3_Init(context.window);
+    }
+#endif
   }
 
   exit_gracefully(0);

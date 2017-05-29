@@ -1,15 +1,16 @@
-#include "assert.h"
+#include <assert.h>
 
 #include "imgui/imgui.h"
 #include "stb/stb_image.h"
 
-#include "platform.h"
-#include "game.h"
-#include "imgui_extensions.h"
-#include "render_commands.h"
-#include "imgui_memory_editor.h"
 #include "assets.h"
 #include "asset_manager.h"
+#include "debug.h"
+#include "game.h"
+#include "imgui_extensions.h"
+#include "imgui_memory_editor.h"
+#include "platform.h"
+#include "render_commands.h"
 
 GameState* g_game_state;
 TransientState* g_transient_state;
@@ -60,6 +61,10 @@ GAME_UPDATE_AND_RENDER(game_update_and_render) {
 }
 
 #ifdef FALL_INTERNAL
+GAME_DEBUG_END_FRAME(game_debug_end_frame) {
+    show_debug_log();
+}
+
 GAME_IMGUI_GET_IO(game_imgui_get_io) {
   return ImGui::GetIO();
 }
@@ -79,6 +84,5 @@ GAME_IMGUI_RENDER(game_imgui_render) {
 GAME_IMGUI_GET_TEX_DATA_AS_RGBA32(game_imgui_get_tex_data_as_rgba32) {
   ImGui::GetIO().Fonts->GetTexDataAsRGBA32(pixels, width, height);
 }
-
 #endif
 

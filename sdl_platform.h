@@ -35,11 +35,13 @@ struct PlatformFileIORequest {
   PlatformAsyncFileHandle* result;
 };
 
-#ifdef PLATFORM_WINDOWS
 struct GameCode {
+#ifdef PLATFORM_WINDOWS
   FILETIME last_write_time;
-  b32 is_valid;
   HMODULE dll;
+#endif
+
+  b32 is_valid;
 
 #ifdef FALL_INTERNAL
   GameUpdateAndRender* update_and_render;
@@ -48,10 +50,10 @@ struct GameCode {
   GameImguiShutdown* imgui_shutdown;
   GameImguiRender* imgui_render;
   GameImguiGetTexDataAsRGBA32* imgui_get_tex_data_as_rgba32;
+  GameDebugEndFrame* debug_end_frame;
 #endif
 };
 
 extern GameCode g_game_code;
-#endif
 
 #endif /* end of include guard: SDL_PLATFORM_H__ */

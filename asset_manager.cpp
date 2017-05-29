@@ -47,6 +47,7 @@ void unload_archive(GameArchiveHeader* header) {
 
 void assets_refresh() {
   if (g_platform.file_has_been_touched(MAIN_ARCHIVE_PATH, &g_asset_manager->main_archive_last_write_time)) {
+    stbi_set_flip_vertically_on_load(true);
     LOG("Refreshing %s\n", MAIN_ARCHIVE_PATH);
     unload_archive((GameArchiveHeader*)g_platform.entire_file_result(g_asset_manager->main_archive_async_handle).contents);
     g_platform.free_file_memory(g_asset_manager->main_archive_async_handle);

@@ -220,6 +220,9 @@ extern i32* g_debug_print_ring_buffer_write_head;
 typedef GAME_UPDATE_AND_RENDER(GameUpdateAndRender);
 
 #ifdef FALL_INTERNAL
+#define GAME_DEBUG_END_FRAME(name) void name()
+typedef GAME_DEBUG_END_FRAME(GameDebugEndFrame);
+
 #define GAME_IMGUI_GET_IO(name) ImGuiIO& name()
 typedef GAME_IMGUI_GET_IO(GameImguiGetIO);
 
@@ -283,7 +286,7 @@ VOID _LOG( LPCSTR kszFunction, INT iLineNumber, LPCSTR kszDebugFormatString, ...
     strncpy(g_debug_print_ring_buffer + write_head, szDebugString, remaining_write_space);
     strcpy(g_debug_print_ring_buffer, szDebugString + remaining_write_space);
   }
-  g_debug_print_ring_buffer_write_head += debug_str_len;
+  *g_debug_print_ring_buffer_write_head += debug_str_len;
 
   _freea( szDebugString );
   va_end( args );
