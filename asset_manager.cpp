@@ -3,22 +3,24 @@
 #include "stb/stb_image.h"
 
 #include "platform.h"
+#include "game.h"
 #include "assets.h"
 #include "asset_manager.h"
 #include "Judy.h"
 
 char* MAIN_ARCHIVE_PATH = (char*)"assets/test_images.pak";
 
-AssetManager g_asset_manager = {};
+#define g_asset_manager (g_transient_state->asset_manager)
 
 void assets_init() {
+  g_transient_state->asset_manager = (AssetManager*)calloc(1, sizeof(AssetManager));
   stbi_set_flip_vertically_on_load(true);
-  g_asset_manager.main_archive_async_handle = g_platform.begin_read_entire_file(MAIN_ARCHIVE_PATH);
-  g_asset_manager.main_archive_last_write_time = g_platform.get_last_write_time(MAIN_ARCHIVE_PATH);
+  g_asset_manager->main_archive_async_handle = g_platform.begin_read_entire_file(MAIN_ARCHIVE_PATH);
+  g_asset_manager->main_archive_last_write_time = g_platform.get_last_write_time(MAIN_ARCHIVE_PATH);
 }
 
 inline void set_atlas_for_type(AssetType type, ArchiveEntryHeader_texture_atlas* atlas) {
-  void** pinsert = (void**)JudyLIns(&g_asset_manager.asset_types_to_atlases, type, PJE0);
+  void** pinsert = (void**)JudyLIns(&g_asset_manager->asset_types_to_atlases, type, PJE0);
   assert(pinsert); // TODO(doug): better OOM handling
   *pinsert = (void*)atlas;
 }
@@ -40,22 +42,22 @@ void unload_archive(GameArchiveHeader* header) {
     }
   }
 
-  g_asset_manager.main_archive = header;
+  g_asset_manager->main_archive = header;
 }
 
 void assets_refresh() {
-  if (g_platform.file_has_been_touched(MAIN_ARCHIVE_PATH, &g_asset_manager.main_archive_last_write_time)) {
+  if (g_platform.file_has_been_touched(MAIN_ARCHIVE_PATH, &g_asset_manager->main_archive_last_write_time)) {
     LOG("Refreshing %s\n", MAIN_ARCHIVE_PATH);
-    unload_archive((GameArchiveHeader*)g_platform.entire_file_result(g_asset_manager.main_archive_async_handle).contents);
-    g_platform.free_file_memory(g_asset_manager.main_archive_async_handle);
-    g_asset_manager.main_archive_async_handle = g_platform.begin_read_entire_file(MAIN_ARCHIVE_PATH);
-    g_asset_manager.main_archive = NULL;
+    unload_archive((GameArchiveHeader*)g_platform.entire_file_result(g_asset_manager->main_archive_async_handle).contents);
+    g_platform.free_file_memory(g_asset_manager->main_archive_async_handle);
+    g_asset_manager->main_archive_async_handle = g_platform.begin_read_entire_file(MAIN_ARCHIVE_PATH);
+    g_asset_manager->main_archive = NULL;
   }
 }
 
 inline ArchiveEntryHeader_texture_atlas* get_atlas_for_type(AssetType type) {
   void* pget;
-  JLG(pget, g_asset_manager.asset_types_to_atlases, type);
+  JLG(pget, g_asset_manager->asset_types_to_atlases, type);
   if (!pget) {
     return NULL;
   }
@@ -63,7 +65,7 @@ inline ArchiveEntryHeader_texture_atlas* get_atlas_for_type(AssetType type) {
 }
 
 inline void assets_complete_init() {
-  PlatformEntireFile archive = g_platform.entire_file_result(g_asset_manager.main_archive_async_handle);
+  PlatformEntireFile archive = g_platform.entire_file_result(g_asset_manager->main_archive_async_handle);
 
   GameArchiveHeader* header = (GameArchiveHeader*)archive.contents;
   ArchiveEntryType* next_type = (ArchiveEntryType*)(header + 1);
@@ -86,11 +88,11 @@ inline void assets_complete_init() {
     }
   }
 
-  g_asset_manager.main_archive = header;
+  g_asset_manager->main_archive = header;
 }
 
 inline void assets_maybe_complete_init() {
-  if (!g_asset_manager.main_archive && g_platform.file_io_complete(g_asset_manager.main_archive_async_handle)) {
+  if (!g_asset_manager->main_archive && g_platform.file_io_complete(g_asset_manager->main_archive_async_handle)) {
     assets_complete_init();
   }
 }

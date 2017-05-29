@@ -8,6 +8,8 @@ struct AssetManager {
   GameArchiveHeader* main_archive;
   PlatformFileLastWriteTime main_archive_last_write_time;
   void* asset_types_to_atlases;
+
+  ArchiveEntryHeader_texture_atlas* main_atlas;
 };
 
 extern AssetManager g_asset_manager;

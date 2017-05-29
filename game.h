@@ -14,4 +14,9 @@ struct GameState {
   char file_name_input[64];
 };
 
+struct AssetManager;
+struct TransientState {
+  AssetManager* asset_manager;
+};
+
 #endif /* end of include guard: GAME_H__ */

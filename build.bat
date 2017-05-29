@@ -13,7 +13,10 @@ IF NOT EXIST shaders mkdir shaders
 del *.pdb > NUL 2> NUL
 
 REM 64-bit build
-cl %CommonCompilerFlags% -DTRANSLATION_UNIT_INDEX=2 ..\fall.cpp -Fmwin32_fall.map /link %CommonLinkerFlags%
+echo WAITING FOR PDB > lock.tmp
+cl %CommonCompilerFlags% -LD ..\fall.cpp -Fmfall.map /link -incremental:no -opt:ref -PDB:fall_%random%.pdb -EXPORT:game_update_and_render -libpath:"..\libs\bin" Judy.lib
+del lock.tmp
+cl %CommonCompilerFlags% -DTRANSLATION_UNIT_INDEX=2 ..\platform.cpp -Fmwin32_fall.map /link %CommonLinkerFlags%
 if %errorlevel% neq 0 goto :error
 
 cp ../libs/bin/SDL2.dll .

@@ -1,14 +1,6 @@
 #include "assert.h"
 #include "render_commands.h"
 
-RenderCommands init_render_commands(i32 max_vertex_count, TexturedQuadVertex* vertex_array, void** textures_array) {
-  RenderCommands result;
-  result.vertex_array = vertex_array;
-  result.quad_textures = textures_array;
-  result.max_vertex_count = max_vertex_count;
-  return result;
-}
-
 void reset_render_commands(RenderCommands* render_commands) {
   render_commands->vertex_count = 0;
 }

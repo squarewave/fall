@@ -38,11 +38,10 @@ GameState* g_game_state;
 TransientState* g_transient_state;
 PlatformInput* g_input;
 PlatformServices g_platform;
+RenderCommands* g_render_commands;
 PlatformRenderSettings g_platform_render_settings;
-RenderCommands g_render_commands;
-
-char g_debug_print_ring_buffer[DEBUG_PRINT_RING_BUFFER_SIZE + 1] = {0};
-i32 g_debug_print_ring_buffer_write_head = 0;
+char* g_debug_print_ring_buffer;
+i32* g_debug_print_ring_buffer_write_head;
 
 void exit_gracefully(int error_code) {
   ImGui_ImplSdlGL3_Shutdown();
@@ -177,6 +176,45 @@ PLATFORM_FREE_FILE_MEMORY(platform_free_file_memory) {
   free(result);
 }
 
+void get_exe_filepath(char* buffer, i32 buffer_size) {
+  GetModuleFileNameA(0, buffer, buffer_size);
+}
+
+void unload_game_code(GameCode* game) {
+  if(game->dll)
+  {
+      FreeLibrary(game->dll);
+      game->dll = 0;
+  }
+
+  game->is_valid = false;
+  game->update_and_render = 0;
+}
+
+GameCode load_game_code(char *source_dll_name, char *tmp_dll_name, char *lock_file_name) {
+  GameCode result = {};
+
+  WIN32_FILE_ATTRIBUTE_DATA ignored;
+  if(!GetFileAttributesEx(lock_file_name, GetFileExInfoStandard, &ignored)) {
+    result.last_write_time = get_file_last_write_time(source_dll_name);
+
+    CopyFile(source_dll_name, tmp_dll_name, FALSE);
+
+    result.dll = LoadLibraryA(tmp_dll_name);
+    if(result.dll) {
+      result.update_and_render = (GameUpdateAndRender*)GetProcAddress(result.dll, "game_update_and_render");
+      result.is_valid = result.update_and_render != NULL;
+    }
+  }
+
+  if(!result.is_valid)
+  {
+    result.update_and_render = NULL;
+  }
+
+  return result;
+}
+
 #endif
 
 #ifdef RENDERER_OPENGL
@@ -284,6 +322,10 @@ int CALLBACK WinMain(
 {
   setlocale(LC_NUMERIC, "");
 
+  g_debug_print_ring_buffer = (char*)calloc(DEBUG_PRINT_RING_BUFFER_SIZE + 1, 1);
+  i32 debug_print_ring_buffer_write_head = 0;
+  g_debug_print_ring_buffer_write_head = &debug_print_ring_buffer_write_head;
+
   PlatformContext context = {0};
   g_platform.DEBUG_read_entire_file = DEBUG_platform_read_entire_file;
   g_platform.DEBUG_write_entire_file = DEBUG_platform_write_entire_file;
@@ -356,7 +398,20 @@ int CALLBACK WinMain(
 
   void** texture_handles = (void**)calloc(megabytes * 8, sizeof(u8));
   TexturedQuadVertex* vertices = (TexturedQuadVertex*)calloc(megabytes * 16, sizeof(u8));
-  g_render_commands = init_render_commands(megabytes * 16 / sizeof(TexturedQuadVertex), vertices, texture_handles);
+  g_render_commands = (RenderCommands*)calloc(1, sizeof(RenderCommands));
+  g_render_commands->vertex_array = vertices;
+  g_render_commands->quad_textures = texture_handles;
+  g_render_commands->max_vertex_count = megabytes * 16 / sizeof(TexturedQuadVertex);
+
+  GameMemory game_memory = {};
+
+  game_memory.game_state = g_game_state;
+  game_memory.transient_state = g_transient_state;
+  game_memory.input = g_input;
+  game_memory.platform = g_platform;
+  game_memory.render_commands = g_render_commands;
+  game_memory.debug_print_ring_buffer = g_debug_print_ring_buffer;
+  game_memory.debug_print_ring_buffer_write_head = g_debug_print_ring_buffer_write_head;
 
 #ifdef RENDERER_OPENGL
   opengl_init(START_WIDTH, START_HEIGHT);
@@ -376,6 +431,25 @@ int CALLBACK WinMain(
   u64 last_counter = SDL_GetPerformanceCounter();
   const f32 target_seconds_per_frame = 1.0f / (f32)FRAME_RATE;
 
+#ifdef PLATFORM_WINDOWS
+  get_exe_filepath(context.exe_filepath, sizeof(context.exe_filepath));
+  i32 exe_directory_len = (i32)(strrchr(context.exe_filepath, '\\') - context.exe_filepath + 1);
+
+  char source_dll_name[FILEPATH_SIZE] = {};
+  memcpy(source_dll_name, context.exe_filepath, exe_directory_len);
+  strcpy(source_dll_name + exe_directory_len, "fall.dll");
+
+  char temp_dll_name[FILEPATH_SIZE] = {};
+  memcpy(temp_dll_name, context.exe_filepath, exe_directory_len);
+  strcpy(temp_dll_name + exe_directory_len, "fall_temp.dll");
+
+  char lock_file_name[FILEPATH_SIZE] = {};
+  memcpy(lock_file_name, context.exe_filepath, exe_directory_len);
+  strcpy(lock_file_name + exe_directory_len, "lock.tmp");
+
+  GameCode game = load_game_code(source_dll_name, temp_dll_name, lock_file_name);
+  FILETIME game_code_last_touched = get_file_last_write_time(source_dll_name);
+#endif
 
   while(running) {
     // TIMED_BLOCK(allotted_time);
@@ -394,6 +468,17 @@ int CALLBACK WinMain(
     f32 dt = get_seconds_elapsed(last_counter, SDL_GetPerformanceCounter());
 
     last_counter = SDL_GetPerformanceCounter();
+
+#ifdef PLATFORM_WINDOWS
+    b32 reload_game_code = file_has_been_touched(source_dll_name, &game_code_last_touched);
+    if (reload_game_code) {
+      unload_game_code(&game);
+      for(i32 i = 0; !game.is_valid && (i < 100); ++i) {
+          game = load_game_code(source_dll_name, temp_dll_name, lock_file_name);
+          SDL_Delay(100);
+      }
+    }
+#endif
 
     ZERO_STRUCT(next_input);
 
@@ -453,15 +538,15 @@ int CALLBACK WinMain(
     g_input = &next_input;
 
     ImGui_ImplSdlGL3_NewFrame(context.window);
-    game_update_and_render();
+    game.update_and_render(&game_memory);
     show_debug_log();
 
     prev_input = next_input;
 
 #ifdef RENDERER_OPENGL
-    opengl_render_commands(&g_render_commands, START_WIDTH, START_HEIGHT);
+    opengl_render_commands(g_render_commands, START_WIDTH, START_HEIGHT);
 #endif
-    reset_render_commands(&g_render_commands);
+    g_render_commands->vertex_count = 0;
 
     ImGui::Render();
     SDL_GL_SwapWindow(context.window);

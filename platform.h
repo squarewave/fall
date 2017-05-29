@@ -190,12 +190,30 @@ struct GameState;
 struct TransientState;
 struct RenderCommands;
 
+struct GameMemory {
+  GameState* game_state;
+  TransientState* transient_state;
+  PlatformInput* input;
+  RenderCommands* render_commands;
+  PlatformServices platform;
+
+  char* debug_print_ring_buffer;
+  i32* debug_print_ring_buffer_write_head;
+};
+
 extern GameState* g_game_state;
 extern TransientState* g_transient_state;
 extern PlatformInput* g_input;
+extern RenderCommands* g_render_commands;
 extern PlatformServices g_platform;
 
-void game_update_and_render();
+#define DEBUG_PRINT_RING_BUFFER_SIZE 0x00000800
+#define DEBUG_PRINT_RING_BUFFER_MASK 0x000007ff
+extern char* g_debug_print_ring_buffer;
+extern i32* g_debug_print_ring_buffer_write_head;
+
+#define GAME_UPDATE_AND_RENDER(name) void name(GameMemory* memory)
+typedef GAME_UPDATE_AND_RENDER(GameUpdateAndRender);
 
 #define ARRAY_LENGTH(array) (sizeof(array) / sizeof(array[0]))
 #define PUSH_STRUCT(arena, type) (type *)_push_size(arena, sizeof(type))
@@ -209,11 +227,6 @@ void game_update_and_render();
 #include "Strsafe.h"
 #include "malloc.h"
 #include "string.h"
-
-#define DEBUG_PRINT_RING_BUFFER_SIZE 0x00000800
-#define DEBUG_PRINT_RING_BUFFER_MASK 0x000007ff
-extern char g_debug_print_ring_buffer[DEBUG_PRINT_RING_BUFFER_SIZE + 1]; // add 1 to ensure null-termination
-extern i32 g_debug_print_ring_buffer_write_head;
 
 // http://stackoverflow.com/questions/29049686/is-there-a-better-way-to-pass-formatted-output-to-outputdebugstring
 #define LOG(kszDebugFormatString, ...) _LOG(__FUNCTION__, __LINE__, kszDebugFormatString, __VA_ARGS__)
@@ -240,7 +253,7 @@ VOID _LOG( LPCSTR kszFunction, INT iLineNumber, LPCSTR kszDebugFormatString, ...
 
   OutputDebugString( szDebugString );
 
-  i32 write_head = g_debug_print_ring_buffer_write_head & DEBUG_PRINT_RING_BUFFER_MASK;
+  i32 write_head = *g_debug_print_ring_buffer_write_head & DEBUG_PRINT_RING_BUFFER_MASK;
   i32 remaining_write_space = DEBUG_PRINT_RING_BUFFER_SIZE - write_head;
   i32 debug_str_len = strlen(szDebugString);
   if (debug_str_len < remaining_write_space) {
