@@ -7,3 +7,7 @@
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb/stb_image_write.h"
+
+#include "imgui_extensions.cpp"
+#include "imgui/imgui.cpp"
+#include "imgui/imgui_draw.cpp"

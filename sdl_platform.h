@@ -40,8 +40,18 @@ struct GameCode {
   FILETIME last_write_time;
   b32 is_valid;
   HMODULE dll;
+
+#ifdef FALL_INTERNAL
   GameUpdateAndRender* update_and_render;
+  GameImguiGetIO* imgui_get_io;
+  GameImguiNewFrame* imgui_new_frame;
+  GameImguiShutdown* imgui_shutdown;
+  GameImguiRender* imgui_render;
+  GameImguiGetTexDataAsRGBA32* imgui_get_tex_data_as_rgba32;
+#endif
 };
+
+extern GameCode g_game_code;
 #endif
 
 #endif /* end of include guard: SDL_PLATFORM_H__ */

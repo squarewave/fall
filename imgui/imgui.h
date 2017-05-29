@@ -36,6 +36,8 @@
 #define IM_PRINTFARGS(FMT)
 #endif
 
+#define IM_ARRAYSIZE(_ARR)      ((int)(sizeof(_ARR)/sizeof(*_ARR)))
+
 #if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wold-style-cast"
@@ -827,6 +829,120 @@ struct ImGuiIO
 };
 
 //-----------------------------------------------------------------------------
+// ImText* helpers
+//-----------------------------------------------------------------------------
+
+// Convert UTF-8 to 32-bits character, process single character input.
+// Based on stb_from_utf8() from github.com/nothings/stb/
+// We handle UTF-8 decoding error by skipping forward.
+int ImTextCharFromUtf8(unsigned int* out_char, const char* in_text, const char* in_text_end)
+{
+    unsigned int c = (unsigned int)-1;
+    const unsigned char* str = (const unsigned char*)in_text;
+    if (!(*str & 0x80))
+    {
+        c = (unsigned int)(*str++);
+        *out_char = c;
+        return 1;
+    }
+    if ((*str & 0xe0) == 0xc0)
+    {
+        *out_char = 0xFFFD; // will be invalid but not end of string
+        if (in_text_end && in_text_end - (const char*)str < 2) return 1;
+        if (*str < 0xc2) return 2;
+        c = (unsigned int)((*str++ & 0x1f) << 6);
+        if ((*str & 0xc0) != 0x80) return 2;
+        c += (*str++ & 0x3f);
+        *out_char = c;
+        return 2;
+    }
+    if ((*str & 0xf0) == 0xe0)
+    {
+        *out_char = 0xFFFD; // will be invalid but not end of string
+        if (in_text_end && in_text_end - (const char*)str < 3) return 1;
+        if (*str == 0xe0 && (str[1] < 0xa0 || str[1] > 0xbf)) return 3;
+        if (*str == 0xed && str[1] > 0x9f) return 3; // str[1] < 0x80 is checked below
+        c = (unsigned int)((*str++ & 0x0f) << 12);
+        if ((*str & 0xc0) != 0x80) return 3;
+        c += (unsigned int)((*str++ & 0x3f) << 6);
+        if ((*str & 0xc0) != 0x80) return 3;
+        c += (*str++ & 0x3f);
+        *out_char = c;
+        return 3;
+    }
+    if ((*str & 0xf8) == 0xf0)
+    {
+        *out_char = 0xFFFD; // will be invalid but not end of string
+        if (in_text_end && in_text_end - (const char*)str < 4) return 1;
+        if (*str > 0xf4) return 4;
+        if (*str == 0xf0 && (str[1] < 0x90 || str[1] > 0xbf)) return 4;
+        if (*str == 0xf4 && str[1] > 0x8f) return 4; // str[1] < 0x80 is checked below
+        c = (unsigned int)((*str++ & 0x07) << 18);
+        if ((*str & 0xc0) != 0x80) return 4;
+        c += (unsigned int)((*str++ & 0x3f) << 12);
+        if ((*str & 0xc0) != 0x80) return 4;
+        c += (unsigned int)((*str++ & 0x3f) << 6);
+        if ((*str & 0xc0) != 0x80) return 4;
+        c += (*str++ & 0x3f);
+        // utf-8 encodings of values used in surrogate pairs are invalid
+        if ((c & 0xFFFFF800) == 0xD800) return 4;
+        *out_char = c;
+        return 4;
+    }
+    *out_char = 0;
+    return 0;
+}
+
+int ImTextStrFromUtf8(ImWchar* buf, int buf_size, const char* in_text, const char* in_text_end, const char** in_text_remaining = NULL)
+{
+    ImWchar* buf_out = buf;
+    ImWchar* buf_end = buf + buf_size;
+    while (buf_out < buf_end-1 && (!in_text_end || in_text < in_text_end) && *in_text)
+    {
+        unsigned int c;
+        in_text += ImTextCharFromUtf8(&c, in_text, in_text_end);
+        if (c == 0)
+            break;
+        if (c < 0x10000)    // FIXME: Losing characters that don't fit in 2 bytes
+            *buf_out++ = (ImWchar)c;
+    }
+    *buf_out = 0;
+    if (in_text_remaining)
+        *in_text_remaining = in_text;
+    return (int)(buf_out - buf);
+}
+
+int ImStrlenW(const ImWchar* str)
+{
+    int n = 0;
+    while (*str++) n++;
+    return n;
+}
+
+// Pass in translated ASCII characters for text input.
+// - with glfw you can get those from the callback set in glfwSetCharCallback()
+// - on Windows you can get those using ToAscii+keyboard state, or via the WM_CHAR message
+void ImGuiIO::AddInputCharacter(ImWchar c)
+{
+    const int n = ImStrlenW(InputCharacters);
+    if (n + 1 < IM_ARRAYSIZE(InputCharacters))
+    {
+        InputCharacters[n] = c;
+        InputCharacters[n+1] = '\0';
+    }
+}
+
+void ImGuiIO::AddInputCharactersUTF8(const char* utf8_chars)
+{
+    // We can't pass more wchars than ImGuiIO::InputCharacters[] can hold so don't convert more
+    const int wchars_buf_len = sizeof(ImGuiIO::InputCharacters) / sizeof(ImWchar);
+    ImWchar wchars[wchars_buf_len];
+    ImTextStrFromUtf8(wchars, wchars_buf_len, utf8_chars, NULL);
+    for (int i = 0; i < wchars_buf_len && wchars[i] != 0; i++)
+        AddInputCharacter(wchars[i]);
+}
+
+//-----------------------------------------------------------------------------
 // Helpers
 //-----------------------------------------------------------------------------
 
@@ -1260,6 +1376,22 @@ struct ImDrawData
     IMGUI_API void ScaleClipRects(const ImVec2& sc);  // Helper to scale the ClipRect field of each ImDrawCmd. Use if your final output buffer is at a different scale than ImGui expects, or if there is a difference between your window resolution and framebuffer resolution.
 };
 
+
+
+// Helper to scale the ClipRect field of each ImDrawCmd. Use if your final output buffer is at a different scale than ImGui expects, or if there is a difference between your window resolution and framebuffer resolution.
+void ImDrawData::ScaleClipRects(const ImVec2& scale)
+{
+    for (int i = 0; i < CmdListsCount; i++)
+    {
+        ImDrawList* cmd_list = CmdLists[i];
+        for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++)
+        {
+            ImDrawCmd* cmd = &cmd_list->CmdBuffer[cmd_i];
+            cmd->ClipRect = ImVec4(cmd->ClipRect.x * scale.x, cmd->ClipRect.y * scale.y, cmd->ClipRect.z * scale.x, cmd->ClipRect.w * scale.y);
+        }
+    }
+}
+
 struct ImFontConfig
 {
     void*           FontData;                   //          // TTF data
@@ -1312,6 +1444,7 @@ struct ImFontAtlas
     // Pitch = Width * BytesPerPixels
     IMGUI_API void              GetTexDataAsAlpha8(unsigned char** out_pixels, int* out_width, int* out_height, int* out_bytes_per_pixel = NULL);  // 1 byte per-pixel
     IMGUI_API void              GetTexDataAsRGBA32(unsigned char** out_pixels, int* out_width, int* out_height, int* out_bytes_per_pixel = NULL);  // 4 bytes-per-pixel
+    IMGUI_API void              GetTexDataAsRGBA32_(unsigned char** out_pixels, int* out_width, int* out_height, int* out_bytes_per_pixel = NULL);  // 4 bytes-per-pixel
     void                        SetTexID(void* id)  { TexID = id; }
 
     // Helpers to retrieve list of common Unicode ranges (2 value per range, values are inclusive, zero-terminated list)

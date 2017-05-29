@@ -6,13 +6,16 @@
 // If you are new to ImGui, see examples/README.txt and documentation at the top of imgui.cpp.
 // https://github.com/ocornut/imgui
 
-#include "imgui.h"
+#include "malloc.h"
+#include "imgui/imgui.h"
 #include "imgui_impl_sdl_gl3.h"
 
 // SDL,GL3W
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_syswm.h"
 #include "gl/glew.h"
+
+#include "sdl_platform.h"
 
 // Data
 static double       g_Time = 0.0f;
@@ -30,7 +33,7 @@ static unsigned int g_VboHandle = 0, g_VaoHandle = 0, g_ElementsHandle = 0;
 void ImGui_ImplSdlGL3_RenderDrawLists(ImDrawData* draw_data)
 {
     // Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates != framebuffer coordinates)
-    ImGuiIO& io = ImGui::GetIO();
+    ImGuiIO& io = g_game_code.imgui_get_io();
     int fb_width = (int)(io.DisplaySize.x * io.DisplayFramebufferScale.x);
     int fb_height = (int)(io.DisplaySize.y * io.DisplayFramebufferScale.y);
     if (fb_width == 0 || fb_height == 0)
@@ -137,7 +140,7 @@ static void ImGui_ImplSdlGL3_SetClipboardText(void*, const char* text)
 
 bool ImGui_ImplSdlGL3_ProcessEvent(SDL_Event* event)
 {
-    ImGuiIO& io = ImGui::GetIO();
+    ImGuiIO& io = g_game_code.imgui_get_io();
     switch (event->type)
     {
     case SDL_MOUSEWHEEL:
@@ -178,10 +181,10 @@ bool ImGui_ImplSdlGL3_ProcessEvent(SDL_Event* event)
 void ImGui_ImplSdlGL3_CreateFontsTexture()
 {
     // Build texture atlas
-    ImGuiIO& io = ImGui::GetIO();
+    ImGuiIO& io = g_game_code.imgui_get_io();
     unsigned char* pixels;
     int width, height;
-    io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);   // Load as RGBA 32-bits for OpenGL3 demo because it is more likely to be compatible with user's existing shader.
+    g_game_code.imgui_get_tex_data_as_rgba32(&pixels, &width, &height);
 
     // Upload texture to graphics system
     GLint last_texture;
@@ -298,14 +301,14 @@ void    ImGui_ImplSdlGL3_InvalidateDeviceObjects()
     if (g_FontTexture)
     {
         glDeleteTextures(1, &g_FontTexture);
-        ImGui::GetIO().Fonts->TexID = 0;
+        g_game_code.imgui_get_io().Fonts->TexID = 0;
         g_FontTexture = 0;
     }
 }
 
 bool    ImGui_ImplSdlGL3_Init(SDL_Window* window)
 {
-    ImGuiIO& io = ImGui::GetIO();
+    ImGuiIO& io = g_game_code.imgui_get_io();
     io.KeyMap[ImGuiKey_Tab] = SDLK_TAB;                     // Keyboard mapping. ImGui will use those indices to peek into the io.KeyDown[] array.
     io.KeyMap[ImGuiKey_LeftArrow] = SDL_SCANCODE_LEFT;
     io.KeyMap[ImGuiKey_RightArrow] = SDL_SCANCODE_RIGHT;
@@ -346,7 +349,7 @@ bool    ImGui_ImplSdlGL3_Init(SDL_Window* window)
 void ImGui_ImplSdlGL3_Shutdown()
 {
     ImGui_ImplSdlGL3_InvalidateDeviceObjects();
-    ImGui::Shutdown();
+    g_game_code.imgui_shutdown();
 }
 
 void ImGui_ImplSdlGL3_NewFrame(SDL_Window* window)
@@ -354,7 +357,7 @@ void ImGui_ImplSdlGL3_NewFrame(SDL_Window* window)
     if (!g_FontTexture)
         ImGui_ImplSdlGL3_CreateDeviceObjects();
 
-    ImGuiIO& io = ImGui::GetIO();
+    ImGuiIO& io = g_game_code.imgui_get_io();
 
     // Setup display size (every frame to accommodate for window resizing)
     int w, h;
@@ -391,5 +394,5 @@ void ImGui_ImplSdlGL3_NewFrame(SDL_Window* window)
     SDL_ShowCursor(io.MouseDrawCursor ? 0 : 1);
 
     // Start the frame
-    ImGui::NewFrame();
+    g_game_code.imgui_new_frame();
 }

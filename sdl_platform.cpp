@@ -21,7 +21,7 @@
 
 #include "SDL2/SDL.h"
 #include "imgui/imgui.h"
-#include "imgui/imgui_impl_sdl_gl3.h"
+#include "imgui_impl_sdl_gl3.h"
 #include "jobthief.h"
 
 #include "platform.h"
@@ -42,6 +42,7 @@ RenderCommands* g_render_commands;
 PlatformRenderSettings g_platform_render_settings;
 char* g_debug_print_ring_buffer;
 i32* g_debug_print_ring_buffer_write_head;
+GameCode g_game_code;
 
 void exit_gracefully(int error_code) {
   ImGui_ImplSdlGL3_Shutdown();
@@ -203,6 +204,11 @@ GameCode load_game_code(char *source_dll_name, char *tmp_dll_name, char *lock_fi
     result.dll = LoadLibraryA(tmp_dll_name);
     if(result.dll) {
       result.update_and_render = (GameUpdateAndRender*)GetProcAddress(result.dll, "game_update_and_render");
+      result.imgui_get_io = (GameImguiGetIO*)GetProcAddress(result.dll, "game_imgui_get_io");
+      result.imgui_new_frame = (GameImguiNewFrame*)GetProcAddress(result.dll, "game_imgui_new_frame");
+      result.imgui_shutdown = (GameImguiShutdown*)GetProcAddress(result.dll, "game_imgui_shutdown");
+      result.imgui_render = (GameImguiRender*)GetProcAddress(result.dll, "game_imgui_render");
+      result.imgui_get_tex_data_as_rgba32 = (GameImguiGetTexDataAsRGBA32*)GetProcAddress(result.dll, "game_imgui_get_tex_data_as_rgba32");
       result.is_valid = result.update_and_render != NULL;
     }
   }
@@ -376,6 +382,26 @@ int CALLBACK WinMain(
     exit_gracefully(1);
   }
 
+#ifdef PLATFORM_WINDOWS
+  get_exe_filepath(context.exe_filepath, sizeof(context.exe_filepath));
+  i32 exe_directory_len = (i32)(strrchr(context.exe_filepath, '\\') - context.exe_filepath + 1);
+
+  char source_dll_name[FILEPATH_SIZE] = {};
+  memcpy(source_dll_name, context.exe_filepath, exe_directory_len);
+  strcpy(source_dll_name + exe_directory_len, "fall.dll");
+
+  char temp_dll_name[FILEPATH_SIZE] = {};
+  memcpy(temp_dll_name, context.exe_filepath, exe_directory_len);
+  strcpy(temp_dll_name + exe_directory_len, "fall_temp.dll");
+
+  char lock_file_name[FILEPATH_SIZE] = {};
+  memcpy(lock_file_name, context.exe_filepath, exe_directory_len);
+  strcpy(lock_file_name + exe_directory_len, "lock.tmp");
+
+  g_game_code = load_game_code(source_dll_name, temp_dll_name, lock_file_name);
+  FILETIME game_code_last_touched = get_file_last_write_time(source_dll_name);
+#endif
+
   ImGui_ImplSdlGL3_Init(context.window);
 
   if(SDL_GL_SetSwapInterval(1) < 0){
@@ -431,26 +457,6 @@ int CALLBACK WinMain(
   u64 last_counter = SDL_GetPerformanceCounter();
   const f32 target_seconds_per_frame = 1.0f / (f32)FRAME_RATE;
 
-#ifdef PLATFORM_WINDOWS
-  get_exe_filepath(context.exe_filepath, sizeof(context.exe_filepath));
-  i32 exe_directory_len = (i32)(strrchr(context.exe_filepath, '\\') - context.exe_filepath + 1);
-
-  char source_dll_name[FILEPATH_SIZE] = {};
-  memcpy(source_dll_name, context.exe_filepath, exe_directory_len);
-  strcpy(source_dll_name + exe_directory_len, "fall.dll");
-
-  char temp_dll_name[FILEPATH_SIZE] = {};
-  memcpy(temp_dll_name, context.exe_filepath, exe_directory_len);
-  strcpy(temp_dll_name + exe_directory_len, "fall_temp.dll");
-
-  char lock_file_name[FILEPATH_SIZE] = {};
-  memcpy(lock_file_name, context.exe_filepath, exe_directory_len);
-  strcpy(lock_file_name + exe_directory_len, "lock.tmp");
-
-  GameCode game = load_game_code(source_dll_name, temp_dll_name, lock_file_name);
-  FILETIME game_code_last_touched = get_file_last_write_time(source_dll_name);
-#endif
-
   while(running) {
     // TIMED_BLOCK(allotted_time);
 
@@ -472,11 +478,13 @@ int CALLBACK WinMain(
 #ifdef PLATFORM_WINDOWS
     b32 reload_game_code = file_has_been_touched(source_dll_name, &game_code_last_touched);
     if (reload_game_code) {
-      unload_game_code(&game);
-      for(i32 i = 0; !game.is_valid && (i < 100); ++i) {
-          game = load_game_code(source_dll_name, temp_dll_name, lock_file_name);
+      ImGui_ImplSdlGL3_Shutdown();
+      unload_game_code(&g_game_code);
+      for(i32 i = 0; !g_game_code.is_valid && (i < 100); ++i) {
+          g_game_code = load_game_code(source_dll_name, temp_dll_name, lock_file_name);
           SDL_Delay(100);
       }
+      ImGui_ImplSdlGL3_Init(context.window);
     }
 #endif
 
@@ -538,7 +546,7 @@ int CALLBACK WinMain(
     g_input = &next_input;
 
     ImGui_ImplSdlGL3_NewFrame(context.window);
-    game.update_and_render(&game_memory);
+    g_game_code.update_and_render(&game_memory);
     show_debug_log();
 
     prev_input = next_input;
@@ -548,7 +556,7 @@ int CALLBACK WinMain(
 #endif
     g_render_commands->vertex_count = 0;
 
-    ImGui::Render();
+    g_game_code.imgui_render();
     SDL_GL_SwapWindow(context.window);
   }
 

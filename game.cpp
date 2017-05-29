@@ -52,9 +52,33 @@ GAME_UPDATE_AND_RENDER(game_update_and_render) {
                      tex.left, tex.top, 0.0f, tex.px_height, 0xffffffff,
                      tex.right, tex.top, tex.px_width, tex.px_height, 0xffffffff);
 
-  // if (ImGui::InputText("", g_game_state->file_name_input, 64)) {
-  //   ImGui::Text("Hello, world!");
-  // }
+  if (ImGui::InputText("", g_game_state->file_name_input, 64)) {
+    ImGui::Text("Hello, world!");
+  }
 
-  // ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+  ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 }
+
+#ifdef FALL_INTERNAL
+GAME_IMGUI_GET_IO(game_imgui_get_io) {
+  return ImGui::GetIO();
+}
+
+GAME_IMGUI_NEW_FRAME(game_imgui_new_frame) {
+  ImGui::NewFrame();
+}
+
+GAME_IMGUI_SHUTDOWN(game_imgui_shutdown) {
+  ImGui::Shutdown();
+}
+
+GAME_IMGUI_RENDER(game_imgui_render) {
+  ImGui::Render();
+}
+
+GAME_IMGUI_GET_TEX_DATA_AS_RGBA32(game_imgui_get_tex_data_as_rgba32) {
+  ImGui::GetIO().Fonts->GetTexDataAsRGBA32(pixels, width, height);
+}
+
+#endif
+

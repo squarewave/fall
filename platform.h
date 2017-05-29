@@ -3,6 +3,10 @@
 
 #include <stdint.h>
 
+#ifdef FALL_INTERNAL
+#include "imgui/imgui.h"
+#endif
+
 typedef uint64_t u64;
 typedef uint32_t u32;
 typedef uint16_t u16;
@@ -214,6 +218,23 @@ extern i32* g_debug_print_ring_buffer_write_head;
 
 #define GAME_UPDATE_AND_RENDER(name) void name(GameMemory* memory)
 typedef GAME_UPDATE_AND_RENDER(GameUpdateAndRender);
+
+#ifdef FALL_INTERNAL
+#define GAME_IMGUI_GET_IO(name) ImGuiIO& name()
+typedef GAME_IMGUI_GET_IO(GameImguiGetIO);
+
+#define GAME_IMGUI_NEW_FRAME(name) void name()
+typedef GAME_IMGUI_NEW_FRAME(GameImguiNewFrame);
+
+#define GAME_IMGUI_SHUTDOWN(name) void name()
+typedef GAME_IMGUI_SHUTDOWN(GameImguiShutdown);
+
+#define GAME_IMGUI_RENDER(name) void name()
+typedef GAME_IMGUI_RENDER(GameImguiRender);
+
+#define GAME_IMGUI_GET_TEX_DATA_AS_RGBA32(name) void name(unsigned char** pixels, int* width, int* height)
+typedef GAME_IMGUI_GET_TEX_DATA_AS_RGBA32(GameImguiGetTexDataAsRGBA32);
+#endif
 
 #define ARRAY_LENGTH(array) (sizeof(array) / sizeof(array[0]))
 #define PUSH_STRUCT(arena, type) (type *)_push_size(arena, sizeof(type))

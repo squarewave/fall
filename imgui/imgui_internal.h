@@ -75,14 +75,12 @@ extern IMGUI_API ImGuiContext* GImGui;  // Current implicit ImGui context pointe
 // Helpers
 //-----------------------------------------------------------------------------
 
-#define IM_ARRAYSIZE(_ARR)      ((int)(sizeof(_ARR)/sizeof(*_ARR)))
 #define IM_PI                   3.14159265358979323846f
 #define IM_OFFSETOF(_TYPE,_ELM) ((size_t)&(((_TYPE*)0)->_ELM))
 
 // Helpers: UTF-8 <> wchar
 IMGUI_API int           ImTextStrToUtf8(char* buf, int buf_size, const ImWchar* in_text, const ImWchar* in_text_end);      // return output UTF-8 bytes count
 IMGUI_API int           ImTextCharFromUtf8(unsigned int* out_char, const char* in_text, const char* in_text_end);          // return input UTF-8 bytes count
-IMGUI_API int           ImTextStrFromUtf8(ImWchar* buf, int buf_size, const char* in_text, const char* in_text_end, const char** in_remaining = NULL);   // return input UTF-8 bytes count
 IMGUI_API int           ImTextCountCharsFromUtf8(const char* in_text, const char* in_text_end);                            // return number of UTF-8 code-points (NOT bytes count)
 IMGUI_API int           ImTextCountUtf8BytesFromStr(const ImWchar* in_text, const ImWchar* in_text_end);                   // return number of bytes to express string as UTF-8 code-points
 

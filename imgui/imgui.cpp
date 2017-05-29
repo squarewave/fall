@@ -855,29 +855,6 @@ ImGuiIO::ImGuiIO()
 #endif
 }
 
-// Pass in translated ASCII characters for text input.
-// - with glfw you can get those from the callback set in glfwSetCharCallback()
-// - on Windows you can get those using ToAscii+keyboard state, or via the WM_CHAR message
-void ImGuiIO::AddInputCharacter(ImWchar c)
-{
-    const int n = ImStrlenW(InputCharacters);
-    if (n + 1 < IM_ARRAYSIZE(InputCharacters))
-    {
-        InputCharacters[n] = c;
-        InputCharacters[n+1] = '\0';
-    }
-}
-
-void ImGuiIO::AddInputCharactersUTF8(const char* utf8_chars)
-{
-    // We can't pass more wchars than ImGuiIO::InputCharacters[] can hold so don't convert more
-    const int wchars_buf_len = sizeof(ImGuiIO::InputCharacters) / sizeof(ImWchar);
-    ImWchar wchars[wchars_buf_len];
-    ImTextStrFromUtf8(wchars, wchars_buf_len, utf8_chars, NULL);
-    for (int i = 0; i < wchars_buf_len && wchars[i] != 0; i++)
-        AddInputCharacter(wchars[i]);
-}
-
 //-----------------------------------------------------------------------------
 // HELPERS
 //-----------------------------------------------------------------------------
@@ -926,13 +903,6 @@ char* ImStrdup(const char *str)
     size_t len = strlen(str) + 1;
     void* buff = ImGui::MemAlloc(len);
     return (char*)memcpy(buff, (const void*)str, len);
-}
-
-int ImStrlenW(const ImWchar* str)
-{
-    int n = 0;
-    while (*str++) n++;
-    return n;
 }
 
 const ImWchar* ImStrbolW(const ImWchar* buf_mid_line, const ImWchar* buf_begin) // find beginning-of-line
@@ -1032,90 +1002,6 @@ ImU32 ImHash(const void* data, int data_size, ImU32 seed)
         }
     }
     return ~crc;
-}
-
-//-----------------------------------------------------------------------------
-// ImText* helpers
-//-----------------------------------------------------------------------------
-
-// Convert UTF-8 to 32-bits character, process single character input.
-// Based on stb_from_utf8() from github.com/nothings/stb/
-// We handle UTF-8 decoding error by skipping forward.
-int ImTextCharFromUtf8(unsigned int* out_char, const char* in_text, const char* in_text_end)
-{
-    unsigned int c = (unsigned int)-1;
-    const unsigned char* str = (const unsigned char*)in_text;
-    if (!(*str & 0x80))
-    {
-        c = (unsigned int)(*str++);
-        *out_char = c;
-        return 1;
-    }
-    if ((*str & 0xe0) == 0xc0)
-    {
-        *out_char = 0xFFFD; // will be invalid but not end of string
-        if (in_text_end && in_text_end - (const char*)str < 2) return 1;
-        if (*str < 0xc2) return 2;
-        c = (unsigned int)((*str++ & 0x1f) << 6);
-        if ((*str & 0xc0) != 0x80) return 2;
-        c += (*str++ & 0x3f);
-        *out_char = c;
-        return 2;
-    }
-    if ((*str & 0xf0) == 0xe0)
-    {
-        *out_char = 0xFFFD; // will be invalid but not end of string
-        if (in_text_end && in_text_end - (const char*)str < 3) return 1;
-        if (*str == 0xe0 && (str[1] < 0xa0 || str[1] > 0xbf)) return 3;
-        if (*str == 0xed && str[1] > 0x9f) return 3; // str[1] < 0x80 is checked below
-        c = (unsigned int)((*str++ & 0x0f) << 12);
-        if ((*str & 0xc0) != 0x80) return 3;
-        c += (unsigned int)((*str++ & 0x3f) << 6);
-        if ((*str & 0xc0) != 0x80) return 3;
-        c += (*str++ & 0x3f);
-        *out_char = c;
-        return 3;
-    }
-    if ((*str & 0xf8) == 0xf0)
-    {
-        *out_char = 0xFFFD; // will be invalid but not end of string
-        if (in_text_end && in_text_end - (const char*)str < 4) return 1;
-        if (*str > 0xf4) return 4;
-        if (*str == 0xf0 && (str[1] < 0x90 || str[1] > 0xbf)) return 4;
-        if (*str == 0xf4 && str[1] > 0x8f) return 4; // str[1] < 0x80 is checked below
-        c = (unsigned int)((*str++ & 0x07) << 18);
-        if ((*str & 0xc0) != 0x80) return 4;
-        c += (unsigned int)((*str++ & 0x3f) << 12);
-        if ((*str & 0xc0) != 0x80) return 4;
-        c += (unsigned int)((*str++ & 0x3f) << 6);
-        if ((*str & 0xc0) != 0x80) return 4;
-        c += (*str++ & 0x3f);
-        // utf-8 encodings of values used in surrogate pairs are invalid
-        if ((c & 0xFFFFF800) == 0xD800) return 4;
-        *out_char = c;
-        return 4;
-    }
-    *out_char = 0;
-    return 0;
-}
-
-int ImTextStrFromUtf8(ImWchar* buf, int buf_size, const char* in_text, const char* in_text_end, const char** in_text_remaining)
-{
-    ImWchar* buf_out = buf;
-    ImWchar* buf_end = buf + buf_size;
-    while (buf_out < buf_end-1 && (!in_text_end || in_text < in_text_end) && *in_text)
-    {
-        unsigned int c;
-        in_text += ImTextCharFromUtf8(&c, in_text, in_text_end);
-        if (c == 0)
-            break;
-        if (c < 0x10000)    // FIXME: Losing characters that don't fit in 2 bytes
-            *buf_out++ = (ImWchar)c;
-    }
-    *buf_out = 0;
-    if (in_text_remaining)
-        *in_text_remaining = in_text;
-    return (int)(buf_out - buf);
 }
 
 int ImTextCountCharsFromUtf8(const char* in_text, const char* in_text_end)
