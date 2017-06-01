@@ -253,46 +253,49 @@ typedef GAME_IMGUI_GET_TEX_DATA_AS_RGBA32(GameImguiGetTexDataAsRGBA32);
 #include "string.h"
 
 // http://stackoverflow.com/questions/29049686/is-there-a-better-way-to-pass-formatted-output-to-outputdebugstring
-#define LOG(kszDebugFormatString, ...) _LOG(__FUNCTION__, __LINE__, kszDebugFormatString, __VA_ARGS__)
+#define LOG(debug_format_string, ...) _LOG(__FUNCTION__, __LINE__, debug_format_string, __VA_ARGS__)
 
-VOID _LOG( LPCSTR kszFunction, INT iLineNumber, LPCSTR kszDebugFormatString, ... ) \
+VOID _LOG( LPCSTR kszFunction, INT iLineNumber, LPCSTR debug_format_string, ... ) \
 {
-  INT cbFormatString = 0;
+  INT result_string_size = 0;
   va_list args;
-  PCHAR szDebugString = NULL;
-  size_t st_Offset = 0;
+  PCHAR result_string = NULL;
+  size_t string_print_offset = 0;
 
-  va_start( args, kszDebugFormatString );
+  va_start( args, debug_format_string );
 
-  cbFormatString = _scprintf("[%s:%d] ", kszFunction, iLineNumber ) * sizeof( CHAR );
-  cbFormatString += _vscprintf( kszDebugFormatString, args ) * sizeof( CHAR ) + 2;
+  result_string_size = _scprintf("[%s:%d] ", kszFunction, iLineNumber ) * sizeof( CHAR );
+  result_string_size += _vscprintf( debug_format_string, args ) * sizeof( CHAR ) + 2;
 
   /* Depending on the size of the format string, allocate space on the stack or the heap. */
-  szDebugString = (PCHAR)_malloca( cbFormatString );
+  result_string = (PCHAR)_malloca(result_string_size);
 
   /* Populate the buffer with the contents of the format string. */
-  StringCbPrintf( szDebugString, cbFormatString, "[%s:%d] ", kszFunction, iLineNumber );
-  StringCbLength( szDebugString, cbFormatString, &st_Offset );
-  StringCbVPrintf( &szDebugString[st_Offset / sizeof(CHAR)], cbFormatString - st_Offset, kszDebugFormatString, args );
+  StringCbPrintf(result_string, result_string_size, "[%s:%d] ", kszFunction, iLineNumber);
+  StringCbLength(result_string, result_string_size, &string_print_offset);
+  StringCbVPrintf(&result_string[string_print_offset], result_string_size - string_print_offset, debug_format_string, args);
+  StringCbLength(result_string, result_string_size, &string_print_offset);
+  result_string[string_print_offset] = '\n';
+  result_string[string_print_offset + 1] = NULL;
 
-  OutputDebugString( szDebugString );
+  OutputDebugString( result_string );
 
   i32 write_head = *g_debug_print_ring_buffer_write_head & DEBUG_PRINT_RING_BUFFER_MASK;
   i32 remaining_write_space = DEBUG_PRINT_RING_BUFFER_SIZE - write_head;
-  i32 debug_str_len = strlen(szDebugString);
+  i32 debug_str_len = strlen(result_string);
   if (debug_str_len < remaining_write_space) {
-    strcpy(g_debug_print_ring_buffer + write_head, szDebugString);
+    strcpy(g_debug_print_ring_buffer + write_head, result_string);
   } else {
-    strncpy(g_debug_print_ring_buffer + write_head, szDebugString, remaining_write_space);
-    strcpy(g_debug_print_ring_buffer, szDebugString + remaining_write_space);
+    strncpy(g_debug_print_ring_buffer + write_head, result_string, remaining_write_space);
+    strcpy(g_debug_print_ring_buffer, result_string + remaining_write_space);
   }
   *g_debug_print_ring_buffer_write_head += debug_str_len;
 
-  _freea( szDebugString );
-  va_end( args );
+  _freea(result_string);
+  va_end(args);
 }
 #else
-#define LOG( kszDebugFormatString, ... ) ;;
+#define LOG(debug_format_string, ... ) ;;
 #endif
 
 #endif /* end of include guard: PLATFORM_H__ */

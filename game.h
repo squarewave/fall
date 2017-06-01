@@ -3,15 +3,12 @@
 
 #include "platform.h"
 
+struct MeatSpace;
+
 struct GameState {
   b32 initialized;
-  b32 dummy_image_loaded;
-  PlatformTexture dummy_texture;
-  PlatformEntireFile dummy_file_result;
-  void* dummy_file_handle;
-  char* dummy_texture_bitmap;
-  int dummy_texture_bitmap_size;
-  char file_name_input[64];
+
+  MeatSpace* TMP_meat_space;
 };
 
 struct AssetManager;

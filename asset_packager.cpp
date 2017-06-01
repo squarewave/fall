@@ -30,7 +30,8 @@ typedef double f64;
 const int MAX_CURRENT_BITMAPS = 1024;
 
 struct Bitmap {
-  int width, height;
+  i32 width, height;
+  i32 anchor_x, anchor_y;
   AssetType asset_type;
   AssetAttributes asset_attributes;
   u32* pixels;
@@ -43,7 +44,7 @@ struct EntireFile {
 
 struct AssetPackager {
   char* current_archive;
-  int bitmap_count;
+  i32 bitmap_count;
   Bitmap bitmaps[MAX_CURRENT_BITMAPS];
 };
 
@@ -170,6 +171,8 @@ void end_archive() {
         packed_tex->bottom = rects[i].y + rects[i].h;
         packed_tex->asset_type = b.asset_type;
         packed_tex->attributes = b.asset_attributes;
+        packed_tex->anchor_x = b.anchor_x;
+        packed_tex->anchor_y = b.anchor_y;
 
         for (int y = 0; y < rects[i].h; ++y) {
           for (int x = 0; x < rects[i].w; ++x) {
@@ -207,7 +210,7 @@ void end_archive() {
   g_packager.current_archive = NULL;
 }
 
-void add_png(AssetType asset_type, AssetAttributes attrs, char* filename) {
+void add_png(AssetType asset_type, AssetAttributes attrs, char* filename, i32 anchor_x = -1, i32 anchor_y = -1) {
   auto file = read_entire_file(filename);
   Bitmap bitmap = {0};
   int channels;
@@ -216,6 +219,14 @@ void add_png(AssetType asset_type, AssetAttributes attrs, char* filename) {
                         &channels, 4);
   bitmap.asset_type = asset_type;
   bitmap.asset_attributes = attrs;
+  if (anchor_x == -1) {
+    anchor_x = bitmap.width / 2;
+  }
+  if (anchor_y == -1) {
+    anchor_y = bitmap.height / 2;
+  }
+  bitmap.anchor_x = anchor_x;
+  bitmap.anchor_y = anchor_y;
   free(file.contents);
   if (channels != 4) {
     printf("Wrong number of channels in %s: %d\n", filename, channels);
@@ -234,12 +245,25 @@ int main(int argc, char const *argv[]) {
   AssetAttributes attrs = {};
 
   begin_archive((char*)"build/assets/test_images.pak");
+
   ZERO(attrs);
   attrs.asset_class = AssetClass_science;
   attrs.color = AssetColor_dark;
   attrs.direction = AssetDirection_forward;
   attrs.move_state = AssetMoveState_standing;
-  add_png(AssetType_crew, attrs, (char*)"assets/crew_science_dark_forward_standing.png");
+  add_png(AssetType_crew, attrs, (char*)"assets/crew_science_dark_forward_standing.png", 6, 1);
+
+  ZERO(attrs);
+  attrs.direction = AssetDirection_horizontal;
+  add_png(AssetType_selection_line, attrs, (char*)"assets/selection_line_horizontal.png");
+
+  ZERO(attrs);
+  attrs.direction = AssetDirection_vertical;
+  add_png(AssetType_selection_line, attrs, (char*)"assets/selection_line_vertical.png");
+
+  ZERO(attrs);
+  add_png(AssetType_selection_circle, attrs, (char*)"assets/selection_circle.png");
+
   end_archive();
   return 0;
 }

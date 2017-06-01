@@ -98,9 +98,9 @@ b32 handle_sdl_event(SDL_Event* event, PlatformContext* context) {
                 &window_height);
 
       input->mouse.x = (f32)event->motion.x;
-      input->mouse.y = (f32)event->motion.y;
+      input->mouse.y = window_height - (f32)event->motion.y - 1;
       input->mouse.dx = (f32)event->motion.xrel;
-      input->mouse.dy = (f32)event->motion.yrel;
+      input->mouse.dy = -(f32)event->motion.yrel;
     } break;
     case SDL_MOUSEBUTTONDOWN:
     case SDL_MOUSEBUTTONUP: {

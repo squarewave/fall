@@ -14,6 +14,7 @@ struct RenderCommands {
   // View coordinates and dimensions are in world space.
   f32 view_center_x, view_center_y;
   f32 view_width, view_height;
+  f32 screen_width, screen_height;
   TexturedQuadVertex* vertex_array;
   void** quad_textures;
   i32 vertex_count;

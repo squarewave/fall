@@ -429,6 +429,8 @@ int CALLBACK WinMain(
   g_render_commands->vertex_array = vertices;
   g_render_commands->quad_textures = texture_handles;
   g_render_commands->max_vertex_count = megabytes * 16 / sizeof(TexturedQuadVertex);
+  g_render_commands->screen_width = START_WIDTH;
+  g_render_commands->screen_height = START_HEIGHT;
 
   GameMemory game_memory = {};
 
@@ -531,7 +533,7 @@ int CALLBACK WinMain(
 
     next_input.dt = dt;
 
-    g_input = &next_input;
+    game_memory.input = g_input = &next_input;
 
     ImGui_ImplSdlGL3_NewFrame(context.window);
     g_game_code.update_and_render(&game_memory);

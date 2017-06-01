@@ -7,10 +7,15 @@
 #include "asset_manager.h"
 #include "debug.h"
 #include "game.h"
-#include "imgui_extensions.h"
-#include "imgui_memory_editor.h"
+#include "meat_space.h"
+#include "memory.h"
 #include "platform.h"
 #include "render_commands.h"
+
+#ifdef FALL_INTERNAL
+#include "imgui_extensions.h"
+#include "imgui_memory_editor.h"
+#endif
 
 GameState* g_game_state;
 TransientState* g_transient_state;
@@ -31,37 +36,62 @@ GAME_UPDATE_AND_RENDER(game_update_and_render) {
 
   if (!g_game_state->initialized) {
     assets_init();
+
+    auto meat_space = g_game_state->TMP_meat_space = game_alloc(MeatSpace);
+
+    {
+      MeatSpaceEntity crew;
+      crew.p = vec2 {0.0f, 0.0f};
+      crew.id = 1;
+      crew.asset_type = AssetType_crew;
+      crew.asset_attributes.asset_class = AssetClass_science;
+      crew.asset_attributes.color = AssetColor_dark;
+      crew.asset_attributes.direction = AssetDirection_forward;
+      crew.asset_attributes.move_state = AssetMoveState_standing;
+      crew.asset_attributes.tracking_id = crew.id;
+      crew.selected = false;
+      meat_space->entities[meat_space->entities_count++] = crew;
+    }
+
+    {
+      MeatSpaceEntity crew;
+      crew.p = vec2 {32.0f, 0.0f};
+      crew.id = 2;
+      crew.asset_type = AssetType_crew;
+      crew.asset_attributes.asset_class = AssetClass_science;
+      crew.asset_attributes.color = AssetColor_dark;
+      crew.asset_attributes.direction = AssetDirection_forward;
+      crew.asset_attributes.move_state = AssetMoveState_standing;
+      crew.asset_attributes.tracking_id = crew.id;
+      crew.selected = false;
+      meat_space->entities[meat_space->entities_count++] = crew;
+    }
+
+    {
+      MeatSpaceBrain player = {};
+      player.type = MeatSpaceBrainType_player;
+      player.player.selected_entities = game_alloc_array(i64, MAX_SELECTED_ENTITIES);
+      meat_space->brains[meat_space->brains_count++] = player;
+
+      meat_space->camera.position = vec2 {0.0f, 0.0f};
+      meat_space->camera.scale = vec2 {1920.0f / 4.0f, 1080.0f / 4.0f};
+      meat_space->camera.viewport_left = 0.0f;
+      meat_space->camera.viewport_right = g_render_commands->screen_width;
+      meat_space->camera.viewport_bottom = 0.0f;
+      meat_space->camera.viewport_top = g_render_commands->screen_height;
+    }
+
     g_game_state->initialized = true;
-    set_camera_position(g_render_commands, 0.0f, 0.0f);
-    set_camera_scale(g_render_commands, 320.0f, 180.0f);
   } else {
     assets_refresh();
   }
 
-  AssetAttributes attrs = {};
-  attrs.asset_class = AssetClass_science;
-  attrs.color = AssetColor_dark;
-  attrs.direction = AssetDirection_forward;
-  attrs.move_state = AssetMoveState_standing;
-  attrs.tracking_id = 1;
-  // TextureAsset tex = assets_get_atlas(AssetType_crew);
-  TextureAsset tex = assets_get_texture(AssetType_crew, attrs);
-  push_textured_quad(g_render_commands,
-                     tex.handle,
-                     tex.left, tex.bottom, 0.0f, 0.0f, 0xffffffff,
-                     tex.right, tex.bottom, tex.px_width, 0.0f, 0xffffffff,
-                     tex.left, tex.top, 0.0f, tex.px_height, 0xffffffff,
-                     tex.right, tex.top, tex.px_width, tex.px_height, 0xffffffff);
-
-  if (ImGui::InputText("", g_game_state->file_name_input, 64)) {
-    ImGui::Text("Hello, world!");
-  }
-
-  ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+  meat_space_update_and_render(g_game_state->TMP_meat_space);
 }
 
 #ifdef FALL_INTERNAL
 GAME_DEBUG_END_FRAME(game_debug_end_frame) {
+    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     show_debug_log();
 }
 

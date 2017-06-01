@@ -15,6 +15,9 @@ enum AssetDirection {
   AssetDirection_forward,
   AssetDirection_backward,
 
+  AssetDirection_horizontal,
+  AssetDirection_vertical,
+
   AssetDirection_count,
 };
 
@@ -43,12 +46,17 @@ enum AssetColor {
   AssetColor_caramel,
   AssetColor_blue,
 
+  AssetColor_green,
+  AssetColor_red,
+
   AssetColor_count,
 };
 
 enum AssetType {
   AssetType_unspecified = 0,
   AssetType_crew,
+  AssetType_selection_line,
+  AssetType_selection_circle,
 
   AssetType_count,
 };
@@ -65,6 +73,7 @@ struct TextureAsset {
   void* handle;
   f32 left, right, top, bottom;
   i32 px_width, px_height;
+  i32 offset_x, offset_y;
 };
 
 enum ArchiveEntryType {
@@ -75,7 +84,8 @@ enum ArchiveEntryType {
 
 #pragma pack (1)
 struct PackedTexture {
-  int top, left, bottom, right;
+  i32 top, left, bottom, right;
+  i32 anchor_x, anchor_y;
   AssetType asset_type;
   AssetAttributes attributes;
 };
@@ -84,14 +94,14 @@ struct PackedTexture {
 struct ArchiveEntryHeader_texture_atlas {
   ArchiveEntryType type;
   void* texture_handle; // Placeholder to be filled in by loading program
-  int png_size;
-  int packed_texture_count;
+  i32 png_size;
+  i32 packed_texture_count;
   PackedTexture packed_textures[0];
 };
 
 #pragma pack (1)
 struct GameArchiveHeader {
-  int archive_entry_count;
+  i32 archive_entry_count;
 };
 
 #endif /* end of include guard: ASSET_PACKAGER_H__ */

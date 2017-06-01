@@ -144,8 +144,8 @@ void opengl_init(i32 window_width, i32 window_height) {
 void opengl_render_commands(RenderCommands* render_commands, i32 window_width, i32 window_height) {
   glDisable(GL_DEPTH_TEST);
   glDisable(GL_CULL_FACE);
-  glDisable(GL_BLEND);
 
+  glEnable(GL_BLEND);
   glEnable(GL_SCISSOR_TEST);
 
   glViewport(0, 0, window_width, window_height);
@@ -165,8 +165,8 @@ void opengl_render_commands(RenderCommands* render_commands, i32 window_width, i
   auto textured_quads = get_program(textured_quads);
   glUniform1i(textured_quads->texture_sampler, 0);
   GLfloat view_transform[9] = {
-    1.0f / render_commands->view_width, 0, render_commands->view_center_x / render_commands->view_width,
-    0, 1.0f / render_commands->view_height, render_commands->view_center_y / render_commands->view_height,
+    2.0f / render_commands->view_width, 0, -2.0f * render_commands->view_center_x / render_commands->view_width,
+    0, 2.0f / render_commands->view_height, -2.0f * render_commands->view_center_y / render_commands->view_height,
     0, 0, 1.0f
   };
   glUniformMatrix3fv(textured_quads->base.view_transform, 1, GL_TRUE, view_transform);

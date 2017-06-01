@@ -1,28 +1,41 @@
 #include <assert.h>
 
 #include "stb/stb_image.h"
+#include "Judy.h"
 
-#include "platform.h"
-#include "game.h"
 #include "assets.h"
 #include "asset_manager.h"
-#include "Judy.h"
+#include "game.h"
+#include "memory.h"
+#include "platform.h"
 
 char* MAIN_ARCHIVE_PATH = (char*)"assets/test_images.pak";
 
 #define g_asset_manager (g_transient_state->asset_manager)
 
 void assets_init() {
-  g_transient_state->asset_manager = (AssetManager*)calloc(1, sizeof(AssetManager));
+  g_asset_manager = transient_alloc(AssetManager);
+
   stbi_set_flip_vertically_on_load(true);
   g_asset_manager->main_archive_async_handle = g_platform.begin_read_entire_file(MAIN_ARCHIVE_PATH);
   g_asset_manager->main_archive_last_write_time = g_platform.get_last_write_time(MAIN_ARCHIVE_PATH);
 }
 
 inline void set_atlas_for_type(AssetType type, ArchiveEntryHeader_texture_atlas* atlas) {
-  void** pinsert = (void**)JudyLIns(&g_asset_manager->asset_types_to_atlases, type, PJE0);
-  assert(pinsert); // TODO(doug): better OOM handling
-  *pinsert = (void*)atlas;
+  g_asset_manager->main_atlas = atlas;
+  // void** pinsert = (void**)JudyLIns(&g_asset_manager->asset_types_to_atlases, type, PJE0);
+  // assert(pinsert); // TODO(doug): better OOM handling
+  // *pinsert = (void*)atlas;
+}
+
+inline ArchiveEntryHeader_texture_atlas* get_atlas_for_type(AssetType type) {
+  return g_asset_manager->main_atlas;
+  // void* pget;
+  // JLG(pget, g_asset_manager->asset_types_to_atlases, type);
+  // if (!pget) {
+  //   return NULL;
+  // }
+  // return *((ArchiveEntryHeader_texture_atlas**)pget);
 }
 
 void unload_archive(GameArchiveHeader* header) {
@@ -56,15 +69,6 @@ void assets_refresh() {
   }
 }
 
-inline ArchiveEntryHeader_texture_atlas* get_atlas_for_type(AssetType type) {
-  void* pget;
-  JLG(pget, g_asset_manager->asset_types_to_atlases, type);
-  if (!pget) {
-    return NULL;
-  }
-  return *((ArchiveEntryHeader_texture_atlas**)pget);
-}
-
 inline void assets_complete_init() {
   PlatformEntireFile archive = g_platform.entire_file_result(g_asset_manager->main_archive_async_handle);
 
@@ -77,6 +81,7 @@ inline void assets_complete_init() {
         for (int j = 0; j < atlas->packed_texture_count; ++j) {
           PackedTexture tex = atlas->packed_textures[j];
           set_atlas_for_type(tex.asset_type, atlas);
+          assert(get_atlas_for_type(tex.asset_type));
         }
 
         int x, y, channels;
@@ -124,6 +129,7 @@ TextureAsset assets_get_texture(AssetType type, AssetAttributes attrs) {
   assets_maybe_complete_init();
   auto atlas = get_atlas_for_type(type);
   if (!atlas) {
+    LOG("No atlas: %d", type);
     return {};
   }
 
@@ -141,6 +147,8 @@ TextureAsset assets_get_texture(AssetType type, AssetAttributes attrs) {
       result.right = (f32)tex.right / (f32)TEXTURE_ATLAS_DIAMETER;
       result.px_width = tex.right - tex.left;
       result.px_height = tex.bottom - tex.top;
+      result.offset_x = (result.px_width / 2) - tex.anchor_x;
+      result.offset_y = (result.px_height / 2) - tex.anchor_y;
       break;
     }
   }

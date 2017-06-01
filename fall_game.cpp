@@ -1,7 +1,11 @@
 #include "game.cpp"
 #include "render_commands.cpp"
 #include "asset_manager.cpp"
+#include "meat_space.cpp"
+
+#ifdef FALL_INTERNAL
 #include "debug.cpp"
+#endif
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
