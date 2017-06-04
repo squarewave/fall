@@ -13,7 +13,7 @@ void push_textured_quad(RenderCommands* render_commands,
                         /* top right */ f32 u3, f32 v3, f32 world_x3, f32 world_y3, u32 color3) {
   assert(render_commands->vertex_count + 4 <= render_commands->max_vertex_count);
 
-  TexturedQuadVertex* vertices = render_commands->vertex_array + render_commands->vertex_count;
+  auto vertices = render_commands->vertex_array + render_commands->vertex_count;
   render_commands->quad_textures[render_commands->vertex_count / 4] = texture_handle;
 
   vertices[0].u = u0;

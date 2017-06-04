@@ -21,8 +21,6 @@ struct RenderCommands {
   i32 max_vertex_count;
 };
 
-RenderCommands init_render_commands(i32 max_vertex_count, TexturedQuadVertex* vertex_array, void** textures_array);
-
 void reset_render_commands(RenderCommands* render_commands);
 
 void push_textured_quad(RenderCommands* render_commands,

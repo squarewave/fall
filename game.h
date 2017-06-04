@@ -3,17 +3,19 @@
 
 #include "platform.h"
 
-struct MeatSpace;
+const float PX_PER_PIXEL = 4.0f;
 
-struct GameState {
+struct MeatSpace;
+struct AssetManager;
+
+reflectable struct GameState {
   b32 initialized;
 
   MeatSpace* TMP_meat_space;
+  AssetManager* asset_manager;
 };
 
-struct AssetManager;
-struct TransientState {
-  AssetManager* asset_manager;
+reflectable struct TransientState {
 };
 
 #endif /* end of include guard: GAME_H__ */

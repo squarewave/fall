@@ -7,6 +7,8 @@
 #include "imgui/imgui.h"
 #endif
 
+#define reflectable
+
 typedef uint64_t u64;
 typedef uint32_t u32;
 typedef uint16_t u16;
@@ -132,7 +134,7 @@ struct PlatformTexture {
   void* handle;
 };
 
-struct PlatformFileLastWriteTime {
+reflectable struct PlatformFileLastWriteTime {
 	char platform_data[8];
 };
 
@@ -240,8 +242,6 @@ typedef GAME_IMGUI_GET_TEX_DATA_AS_RGBA32(GameImguiGetTexDataAsRGBA32);
 #endif
 
 #define ARRAY_LENGTH(array) (sizeof(array) / sizeof(array[0]))
-#define PUSH_STRUCT(arena, type) (type *)_push_size(arena, sizeof(type))
-#define PUSH_ARRAY(arena, count, type) (type *)_push_size(arena, ((size_t)count) * sizeof(type))
 #define ZERO_STRUCT(instance) memset(&(instance), 0, sizeof(instance))
 #define ZERO_ARRAY(instance, count) memset(instance, 0, ((size_t)count) * sizeof(*instance))
 #define OFFSET_OF(type, member) (void*)&(((type *)0)->member)

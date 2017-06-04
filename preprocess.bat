@@ -8,17 +8,15 @@ set CommonLinkerFlags= -incremental:no -opt:ref user32.lib gdi32.lib winmm.lib
 IF NOT EXIST build mkdir build
 pushd build
 
-IF NOT EXIST assets mkdir assets
-
 del *.pdb > NUL 2> NUL
 
 REM 64-bit build
-cl %CommonCompilerFlags% -DTRANSLATION_UNIT_INDEX=2 ..\asset_packager.cpp /link %CommonLinkerFlags%
+cl %CommonCompilerFlags% -DTRANSLATION_UNIT_INDEX=2 ..\preprocessor.cpp /link %CommonLinkerFlags%
 if %errorlevel% neq 0 goto :error
 
 popd
 
-call "build\asset_packager.exe"
+"build\preprocessor.exe" > "generated_typeinfo.h"
 
 goto :EOF
 

@@ -1,2 +1,5 @@
 build/*
 imgui.ini
+
+# Visual Studio stuff
+fall/*

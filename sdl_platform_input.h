@@ -91,22 +91,25 @@ b32 handle_sdl_event(SDL_Event* event, PlatformContext* context) {
       }
     } break;
     case SDL_MOUSEMOTION: {
-      i32 window_width = 0;
-      i32 window_height = 0;
-      SDL_GetWindowSize(context->window,
-                &window_width,
-                &window_height);
+      if (!g_game_code.imgui_get_io().WantCaptureMouse) {
+        i32 window_width = 0;
+        i32 window_height = 0;
+        SDL_GetWindowSize(context->window,
+                          &window_width,
+                          &window_height);
 
-      input->mouse.x = (f32)event->motion.x;
-      input->mouse.y = window_height - (f32)event->motion.y - 1;
-      input->mouse.dx = (f32)event->motion.xrel;
-      input->mouse.dy = -(f32)event->motion.yrel;
+        input->mouse.x = (f32)event->motion.x;
+        input->mouse.y = window_height - (f32)event->motion.y - 1;
+        input->mouse.dx = (f32)event->motion.xrel;
+        input->mouse.dy = -(f32)event->motion.yrel;
+      }
     } break;
     case SDL_MOUSEBUTTONDOWN:
     case SDL_MOUSEBUTTONUP: {
-      b32 ended_down = event->button.state != SDL_RELEASED;
+      if (!g_game_code.imgui_get_io().WantCaptureMouse) {
+        b32 ended_down = event->button.state != SDL_RELEASED;
 
-      switch (event->button.button) {
+        switch (event->button.button) {
         case SDL_BUTTON_LEFT: {
           input->mouse.button_l.ended_down = ended_down;
           input->mouse.button_l.transition_count++;
@@ -119,6 +122,7 @@ b32 handle_sdl_event(SDL_Event* event, PlatformContext* context) {
           input->mouse.button_middle.ended_down = ended_down;
           input->mouse.button_middle.transition_count++;
         } break;
+        }
       }
     } break;
     case SDL_MOUSEWHEEL: {

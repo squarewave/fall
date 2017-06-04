@@ -1,6 +1,6 @@
 @echo off
 
-rem call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
+call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
 
 set CommonCompilerFlags=-Zi -Od /I "..\libs\include" -DPLATFORM_WINDOWS -DRENDERER_OPENGL -DFALL_INTERNAL
 set CommonLinkerFlags= -libpath:"..\libs\bin" -incremental:no -opt:ref user32.lib gdi32.lib winmm.lib SDL2main.lib SDL2.lib openGL32.lib glew32.lib Judy.lib

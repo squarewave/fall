@@ -1,10 +1,12 @@
 #ifndef MEAT_SPACE_H__
 #define MEAT_SPACE_H__
 
+#include "platform.h"
 #include "assets.h"
 #include "geometry.h"
 
-struct MeatSpaceEntity {
+reflectable struct MeatSpaceEntity {
+  // NOTE(doug): these have been thought about
   i64 id;
   vec2 p;
 
@@ -13,10 +15,12 @@ struct MeatSpaceEntity {
   AssetType asset_type;
   AssetAttributes asset_attributes;
 
+  // TODO(doug): these haven't been thought much about.
   b32 selected;
+  rect2 selection_bounds;
 };
 
-enum MeatSpaceBrainType {
+reflectable enum MeatSpaceBrainType {
   MeatSpaceBrainType_none = 0,
   MeatSpaceBrainType_player,
 
@@ -25,22 +29,23 @@ enum MeatSpaceBrainType {
 
 #define MAX_SELECTED_ENTITIES 256
 
-struct MeatSpaceBrain_player {
+reflectable struct MeatSpaceBrain_player {
   i32 selected_entities_count;
   i64* selected_entities;
+  MeatSpaceEntity* mouse_down_entity;
 
   b32 selecting;
   vec2 selection_start;
 };
 
-struct MeatSpaceBrain {
+reflectable struct MeatSpaceBrain {
   MeatSpaceBrainType type;
   union {
     MeatSpaceBrain_player player;
   };
 };
 
-struct MeatSpaceCamera {
+reflectable struct MeatSpaceCamera {
   vec2 position;
   vec2 scale;
 
@@ -50,7 +55,7 @@ struct MeatSpaceCamera {
   f32 viewport_right;
 };
 
-struct MeatSpace {
+reflectable struct MeatSpace {
   MeatSpaceEntity entities[4096];
   i32 entities_count;
 

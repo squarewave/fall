@@ -1,7 +1,6 @@
 #include <assert.h>
 
 #include "imgui/imgui.h"
-#include "stb/stb_image.h"
 
 #include "assets.h"
 #include "asset_manager.h"
@@ -11,11 +10,6 @@
 #include "memory.h"
 #include "platform.h"
 #include "render_commands.h"
-
-#ifdef FALL_INTERNAL
-#include "imgui_extensions.h"
-#include "imgui_memory_editor.h"
-#endif
 
 GameState* g_game_state;
 TransientState* g_transient_state;
@@ -34,7 +28,10 @@ GAME_UPDATE_AND_RENDER(game_update_and_render) {
   g_debug_print_ring_buffer = memory->debug_print_ring_buffer;
   g_debug_print_ring_buffer_write_head = memory->debug_print_ring_buffer_write_head;
 
+  reset_transient_memory();
+
   if (!g_game_state->initialized) {
+
     assets_init();
 
     auto meat_space = g_game_state->TMP_meat_space = game_alloc(MeatSpace);
@@ -43,6 +40,7 @@ GAME_UPDATE_AND_RENDER(game_update_and_render) {
       MeatSpaceEntity crew;
       crew.p = vec2 {0.0f, 0.0f};
       crew.id = 1;
+      crew.selection_bounds = rect2{-4.0f, 2.0f, 4.0f, 26.0f};
       crew.asset_type = AssetType_crew;
       crew.asset_attributes.asset_class = AssetClass_science;
       crew.asset_attributes.color = AssetColor_dark;
@@ -57,6 +55,7 @@ GAME_UPDATE_AND_RENDER(game_update_and_render) {
       MeatSpaceEntity crew;
       crew.p = vec2 {32.0f, 0.0f};
       crew.id = 2;
+      crew.selection_bounds = rect2{ -4.0f, 2.0f, 4.0f, 26.0f };
       crew.asset_type = AssetType_crew;
       crew.asset_attributes.asset_class = AssetClass_science;
       crew.asset_attributes.color = AssetColor_dark;
@@ -74,7 +73,7 @@ GAME_UPDATE_AND_RENDER(game_update_and_render) {
       meat_space->brains[meat_space->brains_count++] = player;
 
       meat_space->camera.position = vec2 {0.0f, 0.0f};
-      meat_space->camera.scale = vec2 {1920.0f / 4.0f, 1080.0f / 4.0f};
+      meat_space->camera.scale = vec2 {1920.0f / PX_PER_PIXEL, 1080.0f / PX_PER_PIXEL};
       meat_space->camera.viewport_left = 0.0f;
       meat_space->camera.viewport_right = g_render_commands->screen_width;
       meat_space->camera.viewport_bottom = 0.0f;
@@ -85,6 +84,8 @@ GAME_UPDATE_AND_RENDER(game_update_and_render) {
   } else {
     assets_refresh();
   }
+
+  inspect_struct(GameState, g_game_state);
 
   meat_space_update_and_render(g_game_state->TMP_meat_space);
 }
