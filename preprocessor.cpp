@@ -2,12 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 
 #include <Windows.h>
 
-#include "stb/stretchy_buffer.h"
 #include "stb/stretchy_buffer.h"
 
 #define ARRAY_LENGTH(array) (sizeof(array) / sizeof(array[0]))
@@ -87,9 +85,12 @@ typedef struct {
   Member* members;
 } Parser;
 
-Slice as_slice(char *s, int64_t len) {
+Slice as_slice(char *s, int64_t len = -1) {
   Slice result;
 
+  if (len == -1) {
+    len = strlen(s);
+  }
   result.len = len;
   result.data = s;
   return result;
@@ -132,7 +133,7 @@ bool slices_equal(Slice lhs, Slice rhs) {
   if (lhs.len != rhs.len)
     return false;
   else
-    return memcmp(lhs.data, rhs.data, lhs.len) != 0;
+    return memcmp(lhs.data, rhs.data, lhs.len) == 0;
 }
 
 char **get_directory(char *start_dir, int64_t *file_count) {
@@ -150,7 +151,7 @@ char **get_directory(char *start_dir, int64_t *file_count) {
     snprintf(path, ARRAY_LENGTH(path), "%s/*.*", dir_path);
 
     WIN32_FIND_DATA fd;
-    HANDLE handle = NULL;
+    HANDLE handle;
     if ((handle = FindFirstFile(path, &fd)) == INVALID_HANDLE_VALUE)
       continue;
 
@@ -197,6 +198,13 @@ Slice eat_whitespace_and_comments(Slice s) {
     if (is_whitespace(*data)) {
       ++data;
       --len;
+    } else if (len > 1 && data[0] == '#') {
+      ++data;
+      --len;
+      while (len > 0 && *data != '\n') {
+        ++data;
+        --len;
+      }
     } else if (len > 1 && data[0] == '/' && data[1] == '/') {
       data += 2;
       len -= 2;
@@ -487,7 +495,8 @@ Token *lex_file(Slice s) {
 }
 
 Slice read_entire_file(char *f) {
-  FILE *fp = fopen(f, "rb");
+  FILE *fp;
+  fopen_s(&fp, f, "rb");
 
   if (!fp)
     return as_slice(0, 0);
@@ -547,12 +556,12 @@ bool require_identifier(Parser* parser, char* identifier) {
   return match_identifier(t, identifier);
 }
 
-void parse_enum_member(Parser* parser, int parent_type, Token type_token, int* index) {
+bool parse_enum_member(Parser* parser, int parent_type, Token type_token, int* index) {
   if (type_token.type == TOKEN_IDENTIFIER) {
     auto member_name = type_token.slice;
     auto t = get_token(parser);
 
-    if (t.type == TOKEN_COMMA) {
+    if (t.type == TOKEN_COMMA || t.type == TOKEN_R_BRACE) {
       Member m = {};
       m.kind = MemberKind_enum;
       m.enum_value = (*index)++;
@@ -573,7 +582,10 @@ void parse_enum_member(Parser* parser, int parent_type, Token type_token, int* i
         sb_push(parser->members, m);
       }
     }
+    
+    return t.type != TOKEN_R_BRACE;
   }
+  return true;
 }
 
 void parse_member(Parser* parser, int parent_struct, Token type_token) {
@@ -609,6 +621,15 @@ void parse_member(Parser* parser, int parent_struct, Token type_token) {
       m.parent_type = parent_struct;
       sb_push(parser->members, m);
     }
+
+    if (next.type != TOKEN_SEMICOLON && next.type != TOKEN_EOF && next.type != TOKEN_R_BRACE) {
+      while (true) {
+        auto t = get_token(parser);
+        if (t.type == TOKEN_SEMICOLON || t.type == TOKEN_EOF || t.type == TOKEN_R_BRACE) {
+          break;
+        }
+      }
+    }
   }
 }
 
@@ -616,9 +637,40 @@ void parse_struct(Parser* parser) {
   auto name_token = get_token(parser);
   if (name_token.type == TOKEN_IDENTIFIER) {
     auto struct_name = name_token.slice;
+    printf("// %.*s\n", struct_name.len, struct_name.data);
     if (require_token(parser, TOKEN_L_BRACE)) {
       Type s = {};
       s.kind = TypeKind_struct;
+      s.type_name = struct_name;
+      sb_push(parser->types, s);
+      while (true) {
+        auto t = get_token(parser);
+        if (t.type == TOKEN_EOF || t.type == TOKEN_R_BRACE) {
+          break;
+        }
+        if (match_identifier(t, "ignore")) {
+          while (true) {
+            auto t1 = get_token(parser);
+            if (t1.type == TOKEN_SEMICOLON || t1.type == TOKEN_EOF || t1.type == TOKEN_R_BRACE) {
+              break;
+            }
+          }
+          continue;
+        }
+
+        parse_member(parser, sb_count(parser->types) - 1, t);
+      }
+    }
+  }
+}
+
+void parse_union(Parser* parser) {
+  auto name_token = get_token(parser);
+  if (name_token.type == TOKEN_IDENTIFIER) {
+    auto struct_name = name_token.slice;
+    if (require_token(parser, TOKEN_L_BRACE)) {
+      Type s = {};
+      s.kind = TypeKind_union;
       s.type_name = struct_name;
       sb_push(parser->types, s);
       while (true) {
@@ -650,7 +702,9 @@ void parse_enum(Parser* parser) {
         }
 
         if (t.type == TOKEN_IDENTIFIER) {
-          parse_enum_member(parser, sb_count(parser->types) - 1, t, &index);
+          if (!parse_enum_member(parser, sb_count(parser->types) - 1, t, &index)) {
+            break;
+          }
         }
       }
     }
@@ -668,6 +722,8 @@ void parse_file(Parser* parser) {
         parse_struct(parser);
       } else if (match_identifier(t, "enum")) {
         parse_enum(parser);
+      } else if (match_identifier(t, "union")) {
+        parse_union(parser);
       }
     }
   }
@@ -702,10 +758,12 @@ const char* get_type_kind_str(TypeKind type_kind) {
 int main(int argc, char** argv) {
   char* files[] = {
     "platform.h",
+    "editor.h",
     "meat_space.h",
     "assets.h",
     "geometry.h",
     "game.h",
+    "grid.h",
     "asset_manager.h",
   };
 
@@ -763,6 +821,7 @@ enum TypeKind {
   TypeKind_struct,
   TypeKind_enum,
   TypeKind_union,
+  TypeKind_primitive,
 };
 
 enum MemberKind {
@@ -780,6 +839,7 @@ struct MemberInfo {
   MemberKind member_kind;
   int enum_value;
   size_t offset;
+  size_t array_size;
   int table_index;
 };
 
@@ -789,14 +849,26 @@ MemberInfo TypeInfo_member_table[] = {)");
     auto m = p.members[i];
     auto struct_name = p.types[m.parent_type].type_name;
     if (m.kind == MemberKind_enum) {
-      printf("  {\"%.*s\", TypeInfo_ID_%.*s, TypeInfo_ID_i32, %s, %d, 0, %d},\n",
+      printf("  {\"%.*s\", TypeInfo_ID_%.*s, TypeInfo_ID_i32, %s, %d, 0, 0, %d},\n",
              m.member_name.len, m.member_name.data,
              struct_name.len, struct_name.data,
              get_member_kind_str(m.kind),
              m.enum_value,
              i);
+    } else if (m.kind == MemberKind_array) {
+      printf("  {\"%.*s\", TypeInfo_ID_%.*s, TypeInfo_ID_%.*s, %s, %d, (size_t)&((%.*s*)0)->%.*s, ARRAY_LENGTH(((%.*s*)0)->%.*s),%d},\n",
+             m.member_name.len, m.member_name.data,
+             struct_name.len, struct_name.data,
+             m.type_name.len, m.type_name.data,
+             get_member_kind_str(m.kind),
+             m.enum_value,
+             struct_name.len, struct_name.data,
+             m.member_name.len, m.member_name.data,
+             struct_name.len, struct_name.data,
+             m.member_name.len, m.member_name.data,
+             i);
     } else {
-      printf("  {\"%.*s\", TypeInfo_ID_%.*s, TypeInfo_ID_%.*s, %s, %d, (size_t)&((%.*s*)0)->%.*s, %d},\n",
+      printf("  {\"%.*s\", TypeInfo_ID_%.*s, TypeInfo_ID_%.*s, %s, %d, (size_t)&((%.*s*)0)->%.*s, 0, %d},\n",
              m.member_name.len, m.member_name.data,
              struct_name.len, struct_name.data,
              m.type_name.len, m.type_name.data,
@@ -814,18 +886,46 @@ MemberInfo TypeInfo_member_table[] = {)");
 struct TypeInfo {
   TypeInfo_ID id;
   TypeKind kind;
+  size_t size;
 };
 
 TypeInfo TypeInfo_custom_type_table[] = {)");
 
   for (int i = 0; i < sb_count(p.types); i++) {
     auto t = p.types[i];
-    printf("  {TypeInfo_ID_%.*s, %s},\n",
+    printf("  {TypeInfo_ID_%.*s, %s, sizeof(%.*s)},\n",
            t.type_name.len, t.type_name.data,
-           get_type_kind_str(t.kind));
+           get_type_kind_str(t.kind),
+           t.type_name.len, t.type_name.data);
   }
 
-printf("};\n");
+  puts(R"(
+};
+
+struct UnionMemberInfo {
+  TypeInfo_ID union_type_id;
+  i32 type;
+  TypeInfo_ID union_member_type_id;
+};
+
+UnionMemberInfo TypeInfo_union_member_table[] = {)");
+
+  for (int i = 0; i < sb_count(p.members); i++) {
+    auto m = p.members[i];
+    auto parent_kind = p.types[m.parent_type].kind;
+    auto parent_type_name = p.types[m.parent_type].type_name;
+    auto member_name = m.member_name;
+    auto member_type_name = m.type_name;
+    if (parent_kind == TypeKind_union && !slices_equal(member_name, as_slice("type"))) {
+      printf("  {TypeInfo_ID_%.*s, %.*s_Type_%.*s, TypeInfo_ID_%.*s},\n",
+             parent_type_name.len, parent_type_name.data,
+             parent_type_name.len, parent_type_name.data,
+             member_name.len, member_name.data,
+             member_type_name.len, member_type_name.data);
+    }
+  }
+
+  printf("};\n");
 
   return 0;
 }

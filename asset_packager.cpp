@@ -142,8 +142,8 @@ void end_archive() {
   stbrp_node* nodes = (stbrp_node*)malloc(sizeof(stbrp_node) * TEXTURE_ATLAS_DIAMETER);
   stbrp_rect* rects = (stbrp_rect*)malloc(sizeof(stbrp_rect) * g_packager.bitmap_count);
   for (int i = 0; i < g_packager.bitmap_count; ++i) {
-    rects[i].w = g_packager.bitmaps[i].width;
-    rects[i].h = g_packager.bitmaps[i].height;
+    rects[i].w = g_packager.bitmaps[i].width + 2;
+    rects[i].h = g_packager.bitmaps[i].height + 2;
     rects[i].id = i;
   }
 
@@ -165,17 +165,17 @@ void end_archive() {
         Bitmap b = g_packager.bitmaps[rects[i].id];
         atlas->packed_texture_count++;
         auto packed_tex = push_to_archive_mem(PackedTexture, 1);
-        packed_tex->left = rects[i].x;
-        packed_tex->right = rects[i].x + rects[i].w;
-        packed_tex->top = rects[i].y;
-        packed_tex->bottom = rects[i].y + rects[i].h;
+        packed_tex->left = rects[i].x + 1;
+        packed_tex->right = packed_tex->left + b.width;
+        packed_tex->top = rects[i].y + 1;
+        packed_tex->bottom = packed_tex->top + b.height;
         packed_tex->asset_type = b.asset_type;
         packed_tex->attributes = b.asset_attributes;
         packed_tex->anchor_x = b.anchor_x;
         packed_tex->anchor_y = b.anchor_y;
 
-        for (int y = 0; y < rects[i].h; ++y) {
-          for (int x = 0; x < rects[i].w; ++x) {
+        for (int y = 0; y < b.height; ++y) {
+          for (int x = 0; x < b.width; ++x) {
             temp_atlas_data[(y + packed_tex->top) * TEXTURE_ATLAS_DIAMETER + x + packed_tex->left] = b.pixels[y * b.width + x];
           }
         }
@@ -210,7 +210,7 @@ void end_archive() {
   g_packager.current_archive = NULL;
 }
 
-void add_png(AssetType asset_type, AssetAttributes attrs, char* filename, i32 anchor_x = -1, i32 anchor_y = -1) {
+void add_png(AssetType asset_type, AssetAttributes attrs, char* filename, i32 anchor_x = -256, i32 anchor_y = -256) {
   auto file = read_entire_file(filename);
   Bitmap bitmap = {0};
   int channels;
@@ -219,19 +219,15 @@ void add_png(AssetType asset_type, AssetAttributes attrs, char* filename, i32 an
                         &channels, 4);
   bitmap.asset_type = asset_type;
   bitmap.asset_attributes = attrs;
-  if (anchor_x == -1) {
+  if (anchor_x == -256) {
     anchor_x = bitmap.width / 2;
   }
-  if (anchor_y == -1) {
+  if (anchor_y == -256) {
     anchor_y = bitmap.height / 2;
   }
   bitmap.anchor_x = anchor_x;
   bitmap.anchor_y = anchor_y;
   free(file.contents);
-  if (channels != 4) {
-    printf("Wrong number of channels in %s: %d\n", filename, channels);
-    exit(1);
-  }
 
   g_packager.bitmaps[g_packager.bitmap_count++] = bitmap;
 }
@@ -247,11 +243,22 @@ int main(int argc, char const *argv[]) {
   begin_archive((char*)"build/assets/test_images.pak");
 
   ZERO(attrs);
+  add_png(AssetType_square, attrs, (char*)"assets/white_pixel.png", 6, 2);
+
+  ZERO(attrs);
   attrs.asset_class = AssetClass_science;
   attrs.color = AssetColor_dark;
   attrs.direction = AssetDirection_forward;
   attrs.move_state = AssetMoveState_standing;
-  add_png(AssetType_crew, attrs, (char*)"assets/crew_science_dark_forward_standing.png", 6, 1);
+  add_png(AssetType_crew, attrs, (char*)"assets/crew_science_dark_forward_standing.png", 6, 2);
+
+  ZERO(attrs);
+  attrs.asset_class = AssetClass_science;
+  attrs.color = AssetColor_dark;
+  attrs.direction = AssetDirection_forward;
+  attrs.move_state = AssetMoveState_standing;
+  attrs.living_state = AssetLivingState_dead;
+  add_png(AssetType_crew, attrs, (char*)"assets/crew_science_dark_forward_standing_dead.png", 6, 2);
 
   ZERO(attrs);
   attrs.direction = AssetDirection_horizontal;
@@ -262,7 +269,101 @@ int main(int argc, char const *argv[]) {
   add_png(AssetType_selection_line, attrs, (char*)"assets/selection_line_vertical.png");
 
   ZERO(attrs);
-  add_png(AssetType_selection_circle, attrs, (char*)"assets/selection_circle.png");
+  add_png(AssetType_selection_circle, attrs, (char*)"assets/selection_circle.png", -256, 7);
+
+  ZERO(attrs);
+  add_png(AssetType_boulder_large, attrs, (char*)"assets/boulder_medium_01.png");
+
+  ZERO(attrs);
+  add_png(AssetType_tree_medium, attrs, (char*)"assets/tree_medium_01.png");
+
+  ZERO(attrs);
+  attrs.variation_number = 1;
+  add_png(AssetType_tree_medium, attrs, (char*)"assets/tree_medium_02.png");
+
+  ZERO(attrs);
+  add_png(AssetType_tree_large, attrs, (char*)"assets/tree_large_01.png");
+
+  ZERO(attrs);
+  attrs.bitflags = 0;
+  add_png(AssetType_tile, attrs, (char*)"assets/tile_dirt_dirt_dirt_dirt_01.png");
+
+  ZERO(attrs);
+  attrs.bitflags |= GRASS_BOTTOM_LEFT;
+  add_png(AssetType_tile, attrs, (char*)"assets/tile_dirt_dirt_dirt_grass_01.png");
+
+  ZERO(attrs);
+  attrs.bitflags |= GRASS_BOTTOM_RIGHT;
+  add_png(AssetType_tile, attrs, (char*)"assets/tile_dirt_dirt_grass_dirt_01.png");
+
+  ZERO(attrs);
+  attrs.bitflags |= GRASS_BOTTOM_RIGHT;
+  attrs.bitflags |= GRASS_BOTTOM_LEFT;
+  add_png(AssetType_tile, attrs, (char*)"assets/tile_dirt_dirt_grass_grass_01.png");
+
+  ZERO(attrs);
+  attrs.bitflags |= GRASS_TOP_RIGHT;
+  add_png(AssetType_tile, attrs, (char*)"assets/tile_dirt_grass_dirt_dirt_01.png");
+
+  ZERO(attrs);
+  attrs.bitflags |= GRASS_TOP_RIGHT;
+  attrs.bitflags |= GRASS_BOTTOM_LEFT;
+  add_png(AssetType_tile, attrs, (char*)"assets/tile_dirt_grass_dirt_grass_01.png");
+
+  ZERO(attrs);
+  attrs.bitflags |= GRASS_TOP_RIGHT;
+  attrs.bitflags |= GRASS_BOTTOM_RIGHT;
+  add_png(AssetType_tile, attrs, (char*)"assets/tile_dirt_grass_grass_dirt_01.png");
+
+  ZERO(attrs);
+  attrs.bitflags |= GRASS_TOP_RIGHT;
+  attrs.bitflags |= GRASS_BOTTOM_LEFT;
+  attrs.bitflags |= GRASS_BOTTOM_RIGHT;
+  add_png(AssetType_tile, attrs, (char*)"assets/tile_dirt_grass_grass_grass_01.png");
+
+  ZERO(attrs);
+  attrs.bitflags |= GRASS_TOP_LEFT;
+  add_png(AssetType_tile, attrs, (char*)"assets/tile_grass_dirt_dirt_dirt_01.png");
+
+  ZERO(attrs);
+  attrs.bitflags |= GRASS_TOP_LEFT;
+  attrs.bitflags |= GRASS_BOTTOM_LEFT;
+  add_png(AssetType_tile, attrs, (char*)"assets/tile_grass_dirt_dirt_grass_01.png");
+
+  ZERO(attrs);
+  attrs.bitflags |= GRASS_TOP_LEFT;
+  attrs.bitflags |= GRASS_BOTTOM_RIGHT;
+  add_png(AssetType_tile, attrs, (char*)"assets/tile_grass_dirt_grass_dirt_01.png");
+
+  ZERO(attrs);
+  attrs.bitflags |= GRASS_TOP_LEFT;
+  attrs.bitflags |= GRASS_BOTTOM_LEFT;
+  attrs.bitflags |= GRASS_BOTTOM_RIGHT;
+  add_png(AssetType_tile, attrs, (char*)"assets/tile_grass_dirt_grass_grass_01.png");
+
+  ZERO(attrs);
+  attrs.bitflags |= GRASS_TOP_LEFT;
+  attrs.bitflags |= GRASS_TOP_RIGHT;
+  add_png(AssetType_tile, attrs, (char*)"assets/tile_grass_grass_dirt_dirt_01.png");
+
+  ZERO(attrs);
+  attrs.bitflags |= GRASS_TOP_LEFT;
+  attrs.bitflags |= GRASS_TOP_RIGHT;
+  attrs.bitflags |= GRASS_BOTTOM_LEFT;
+  add_png(AssetType_tile, attrs, (char*)"assets/tile_grass_grass_dirt_grass_01.png");
+
+  ZERO(attrs);
+  attrs.bitflags |= GRASS_TOP_LEFT;
+  attrs.bitflags |= GRASS_TOP_RIGHT;
+  attrs.bitflags |= GRASS_BOTTOM_RIGHT;
+  add_png(AssetType_tile, attrs, (char*)"assets/tile_grass_grass_grass_dirt_01.png");
+
+  ZERO(attrs);
+  attrs.bitflags |= GRASS_TOP_LEFT;
+  attrs.bitflags |= GRASS_TOP_RIGHT;
+  attrs.bitflags |= GRASS_BOTTOM_RIGHT;
+  attrs.bitflags |= GRASS_BOTTOM_LEFT;
+  add_png(AssetType_tile, attrs, (char*)"assets/tile_grass_grass_grass_grass_01.png");
 
   end_archive();
   return 0;

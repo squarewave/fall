@@ -7,16 +7,14 @@ void main(void) {
 
   gl_Position = vec4(view_position.xyz, 1.0);
 
-  frag_uv = uv_coords.xy;
   frag_color = color;
 }
 
 #endif
 
 #if FRAGMENT_SHADER
-uniform sampler2D texture_sampler;
-
 void main(void) {
+
 #if DEPTH_PEELING
   float depth = texelFetch(depth_sampler, ivec2(gl_FragCoord.xy), 0).r;
   float z = gl_FragCoord.z;
@@ -25,9 +23,7 @@ void main(void) {
   }
 #endif
 
-  vec4 texture_sample = texture(texture_sampler, frag_uv);
-
-  out_color = frag_color * texture_sample;
+  out_color = frag_color;
 
   if(out_color.a <= 0.01) {
     discard;

@@ -2,6 +2,8 @@
 
 call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
 
+call "preprocess.bat"
+
 set CommonCompilerFlags=-Zi -Od /I "..\libs\include" -DPLATFORM_WINDOWS -DRENDERER_OPENGL -DFALL_INTERNAL
 set CommonLinkerFlags= -libpath:"..\libs\bin" -incremental:no -opt:ref user32.lib gdi32.lib winmm.lib SDL2main.lib SDL2.lib openGL32.lib glew32.lib Judy.lib
 set GameExports=-EXPORT:game_update_and_render -EXPORT:game_imgui_get_io -EXPORT:game_imgui_new_frame -EXPORT:game_imgui_shutdown -EXPORT:game_imgui_render -EXPORT:game_imgui_get_tex_data_as_rgba32 -EXPORT:game_debug_end_frame

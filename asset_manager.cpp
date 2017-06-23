@@ -13,7 +13,7 @@ char* MAIN_ARCHIVE_PATH = (char*)"assets/test_images.pak";
 #define g_asset_manager (g_game_state->asset_manager)
 
 void assets_init() {
-  g_asset_manager = transient_alloc(AssetManager);
+  g_asset_manager = game_alloc(AssetManager);
 
   stbi_set_flip_vertically_on_load(true);
   g_asset_manager->main_archive_async_handle = g_platform.begin_read_entire_file(MAIN_ARCHIVE_PATH);
@@ -43,8 +43,9 @@ void unload_archive(GameArchiveHeader* header) {
     switch (*next_type) {
       case ArchiveEntryType_texture_atlas: {
         auto atlas = (ArchiveEntryHeader_texture_atlas*)next_type;
+        auto packed_textures = (PackedTexture*)(atlas + 1);
         for (int j = 0; j < atlas->packed_texture_count; ++j) {
-          auto tex = atlas->packed_textures[j];
+          auto tex = packed_textures[j];
           set_atlas_for_type(tex.asset_type, NULL);
         }
 
@@ -77,14 +78,15 @@ inline void assets_complete_init() {
     switch (*next_type) {
       case ArchiveEntryType_texture_atlas: {
         auto atlas = (ArchiveEntryHeader_texture_atlas*)next_type;
+        auto packed_textures = (PackedTexture*)(atlas + 1);
         for (int j = 0; j < atlas->packed_texture_count; ++j) {
-          auto tex = atlas->packed_textures[j];
+          auto tex = packed_textures[j];
           set_atlas_for_type(tex.asset_type, atlas);
           assert(get_atlas_for_type(tex.asset_type));
         }
 
         int x, y, channels;
-        auto png = (char*)(atlas->packed_textures + atlas->packed_texture_count);
+        auto png = (char*)(packed_textures + atlas->packed_texture_count);
         auto bitmap = (char*)stbi_load_from_memory((unsigned char*)png, atlas->png_size, &x, &y, &channels, 4);
         atlas->texture_handle = g_platform.register_texture(bitmap, x, y, channels).handle;
         stbi_image_free(bitmap);
@@ -132,24 +134,39 @@ TextureAsset assets_get_texture(AssetType type, AssetAttributes attrs) {
     return result;
   }
 
+  auto packed_textures = (PackedTexture*)(atlas + 1);
+  i32 min_distance = INT_MAX;
+  i32 min_distance_index = -1;
   for (int j = 0; j < atlas->packed_texture_count; ++j) {
-    auto tex = atlas->packed_textures[j];
-    if (tex.asset_type == type &&
-        tex.attributes.move_state == attrs.move_state &&
-        tex.attributes.asset_class == attrs.asset_class &&
-        tex.attributes.color == attrs.color &&
-        tex.attributes.direction == attrs.direction) {
-      result.handle = atlas->texture_handle;
-      result.top = 1.0f - (f32)tex.top / (f32)TEXTURE_ATLAS_DIAMETER;
-      result.bottom = 1.0f - (f32)tex.bottom / (f32)TEXTURE_ATLAS_DIAMETER;
-      result.left = (f32)tex.left / (f32)TEXTURE_ATLAS_DIAMETER;
-      result.right = (f32)tex.right / (f32)TEXTURE_ATLAS_DIAMETER;
-      result.px_width = tex.right - tex.left;
-      result.px_height = tex.bottom - tex.top;
-      result.anchor_x = tex.anchor_x;
-      result.anchor_y = tex.anchor_y;
-      break;
+    auto tex = packed_textures[j];
+
+    if (tex.asset_type == type) {
+      i32 distance = 0;
+      distance += tex.attributes.move_state != attrs.move_state;
+      distance += tex.attributes.asset_class != attrs.asset_class;
+      distance += tex.attributes.color != attrs.color;
+      distance += tex.attributes.direction != attrs.direction;
+      distance += tex.attributes.living_state != attrs.living_state;
+      distance += tex.attributes.bitflags != attrs.bitflags;
+      distance += tex.attributes.variation_number != attrs.variation_number % AssetType_variation_counts[type];
+      if (distance < min_distance) {
+        min_distance = distance;
+        min_distance_index = j;
+      }
     }
+  }
+
+  if (min_distance_index != -1) {
+    auto tex = packed_textures[min_distance_index];
+    result.handle = atlas->texture_handle;
+    result.top = 1.0f - (f32)tex.top / (f32)TEXTURE_ATLAS_DIAMETER;
+    result.bottom = 1.0f - (f32)tex.bottom / (f32)TEXTURE_ATLAS_DIAMETER;
+    result.left = (f32)tex.left / (f32)TEXTURE_ATLAS_DIAMETER;
+    result.right = (f32)tex.right / (f32)TEXTURE_ATLAS_DIAMETER;
+    result.px_width = tex.right - tex.left;
+    result.px_height = tex.bottom - tex.top;
+    result.anchor_x = tex.anchor_x;
+    result.anchor_y = tex.anchor_y;
   }
 
   return result;

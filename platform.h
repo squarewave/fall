@@ -8,6 +8,7 @@
 #endif
 
 #define reflectable
+#define ignore
 
 typedef uint64_t u64;
 typedef uint32_t u32;
@@ -88,17 +89,37 @@ struct KeyboardInput {
   b32 shift_down, alt_down, ctrl_down;
 };
 
-b32 was_pressed(ButtonInput button) {
+#define collection_add(collection, item) collection[collection##_count++] = (item)
+#define collection_reserve(collection) &(collection[collection##_count++])
+#define collection_reserve_i(collection) collection##_count++
+
+inline void eat_button_input(ButtonInput* button) {
+  button->ended_down = false;
+  button->transition_count = 0;
+}
+
+inline b32 was_pressed(ButtonInput button) {
   return button.ended_down && button.transition_count;
 }
 
-b32 was_down(ButtonInput button) {
-  // NOTE(doug): this is just for some visual consistency with the other two functions
+inline b32 was_down(ButtonInput button) {
   return button.ended_down;
 }
 
-b32 was_released(ButtonInput button) {
+inline b32 was_released(ButtonInput button) {
   return (!button.ended_down) && button.transition_count;
+}
+
+inline b32 has_flag(u32 value, u32 flag) {
+  return value & flag;
+}
+
+inline void set_flag(u32* value, u32 flag) {
+  *value |= flag;
+}
+
+inline void clear_flag(u32* value, u32 flag) {
+  *value &= ~flag;
 }
 
 struct PlatformInput {
@@ -129,7 +150,7 @@ struct PlatformEntireFile {
   i32 content_size;
 };
 
-struct PlatformTexture {
+reflectable struct PlatformTexture {
   i32 width, height, channels;
   void* handle;
 };
@@ -245,6 +266,11 @@ typedef GAME_IMGUI_GET_TEX_DATA_AS_RGBA32(GameImguiGetTexDataAsRGBA32);
 #define ZERO_STRUCT(instance) memset(&(instance), 0, sizeof(instance))
 #define ZERO_ARRAY(instance, count) memset(instance, 0, ((size_t)count) * sizeof(*instance))
 #define OFFSET_OF(type, member) (void*)&(((type *)0)->member)
+
+#define MEGABYTES 1024LL * 1024LL
+#define GAME_MEMORY_SIZE (MEGABYTES * 24)
+#define TRANSIENT_MEMORY_SIZE (MEGABYTES * 1)
+
 
 #ifdef PLATFORM_WINDOWS
 #include "Windows.h"

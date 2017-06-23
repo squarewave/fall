@@ -523,7 +523,7 @@
 			"file": "debug.h",
 			"settings":
 			{
-				"buffer_size": 129,
+				"buffer_size": 609,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -532,7 +532,24 @@
 			"file": "debug.cpp",
 			"settings":
 			{
-				"buffer_size": 1122,
+				"buffer_size": 7492,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "meat_space.cpp",
+			"settings":
+			{
+				"buffer_size": 45634,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": ".gitignore",
+			"settings":
+			{
+				"buffer_size": 48,
+				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
 		},
@@ -540,7 +557,7 @@
 			"file": "sdl_platform.cpp",
 			"settings":
 			{
-				"buffer_size": 17173,
+				"buffer_size": 17670,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -557,7 +574,7 @@
 			"file": "sdl_platform_input.h",
 			"settings":
 			{
-				"buffer_size": 6706,
+				"buffer_size": 6878,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -611,7 +628,7 @@
 			"file": "game.cpp",
 			"settings":
 			{
-				"buffer_size": 3410,
+				"buffer_size": 13602,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -620,20 +637,17 @@
 			"file": "meat_space.h",
 			"settings":
 			{
-				"buffer_size": 1114,
+				"buffer_size": 7436,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"contents": "#include <assert.h>\n#include <minwindef.h>\n\n#include \"asset_manager.h\"\n#include \"game_math.h\"\n#include \"imgui_extensions.h\"\n#include \"meat_space.h\"\n#include \"render_commands.h\"\n\nvec2 mouse_world_position(MeatSpace* meat_space) {\n  f32 viewport_width = meat_space->camera.viewport_right - meat_space->camera.viewport_left;\n  f32 viewport_height = meat_space->camera.viewport_top - meat_space->camera.viewport_bottom;\n  f32 x_norm = clamp((g_input->mouse.x - meat_space->camera.viewport_left) / viewport_width, 0.0f, 1.0f) - 0.5f;\n  f32 y_norm = clamp((g_input->mouse.y - meat_space->camera.viewport_bottom) / viewport_height, 0.0f, 1.0f) - 0.5f;\n  f32 world_x = x_norm * meat_space->camera.scale.x + meat_space->camera.position.x;\n  f32 world_y = y_norm * meat_space->camera.scale.y + meat_space->camera.position.y;\n  return vec2 {world_x, world_y};\n}\n\nvoid meat_space_update_and_render(MeatSpace* meat_space) {\n  MeatSpaceBrain_player* selecting_player = NULL;\n  rect2 selection_rect = {};\n\n  for (i32 i = 0; i < meat_space->brains_count; ++i) {\n    auto brain = meat_space->brains + i;\n\n    switch (brain->type) {\n      case MeatSpaceBrainType_player: {\n        auto player = &brain->player;\n        if (was_pressed(g_input->mouse.button_l)) {\n          player->selecting = true;\n          player->selection_start = mouse_world_position(meat_space);\n        }\n        if (was_released(g_input->mouse.button_l)) {\n          if (player->selecting) {\n            player->selecting = false;\n            player->selected_entities_count = 0;\n            selecting_player = player;\n          }\n        }\n\n        if (player->selecting || selecting_player) {\n          vec2 selection_end = mouse_world_position(meat_space);\n          selection_rect.bottom_left.x = min(player->selection_start.x, selection_end.x);\n          selection_rect.bottom_left.y = min(player->selection_start.y, selection_end.y);\n          selection_rect.top_right.x = max(player->selection_start.x, selection_end.x);\n          selection_rect.top_right.y = max(player->selection_start.y, selection_end.y);\n\n          AssetAttributes attrs = {};\n          attrs.direction = AssetDirection_horizontal;\n          auto horizontal_line = assets_get_texture(AssetType_selection_line, attrs);\n          attrs.direction = AssetDirection_vertical;\n          auto vertical_line = assets_get_texture(AssetType_selection_line, attrs);\n\n          {\n            // top line\n            f32 left = selection_rect.bottom_left.x;\n            f32 right = selection_rect.top_right.x - 0.5f;\n            f32 top = selection_rect.top_right.y;\n            f32 bottom = top - 0.5f;\n            push_textured_quad(g_render_commands,\n                               horizontal_line.handle,\n                               horizontal_line.left, horizontal_line.bottom, left, bottom, 0xffffffff,\n                               horizontal_line.right, horizontal_line.bottom, right, bottom, 0xffffffff,\n                               horizontal_line.left, horizontal_line.top, left, top, 0xffffffff,\n                               horizontal_line.right, horizontal_line.top, right, top, 0xffffffff);\n          }\n\n          {\n            // bottom line\n            f32 left = selection_rect.bottom_left.x + 0.5f;\n            f32 right = selection_rect.top_right.x;\n            f32 bottom = selection_rect.bottom_left.y;\n            f32 top = bottom + 0.5f;\n            push_textured_quad(g_render_commands,\n                               horizontal_line.handle,\n                               horizontal_line.left, horizontal_line.bottom, right, bottom, 0xffffffff,\n                               horizontal_line.right, horizontal_line.bottom, left, bottom, 0xffffffff,\n                               horizontal_line.left, horizontal_line.top, right, top, 0xffffffff,\n                               horizontal_line.right, horizontal_line.top, left, top, 0xffffffff);\n          }\n\n          {\n            // left line\n            f32 left = selection_rect.bottom_left.x;\n            f32 right = left + 0.5f;\n            f32 top = selection_rect.top_right.y - 0.5f;\n            f32 bottom = selection_rect.bottom_left.y;\n            push_textured_quad(g_render_commands,\n                               vertical_line.handle,\n                               vertical_line.left, vertical_line.bottom, left, bottom, 0xffffffff,\n                               vertical_line.right, vertical_line.bottom, right, bottom, 0xffffffff,\n                               vertical_line.left, vertical_line.top, left, top, 0xffffffff,\n                               vertical_line.right, vertical_line.top, right, top, 0xffffffff);\n          }\n\n          {\n            // right line\n            f32 right = selection_rect.top_right.x;\n            f32 left = right - 0.5f;\n            f32 top = selection_rect.top_right.y;\n            f32 bottom = selection_rect.bottom_left.y + 0.5f;\n            push_textured_quad(g_render_commands,\n                               vertical_line.handle,\n                               vertical_line.left, vertical_line.bottom, left, top, 0xffffffff,\n                               vertical_line.right, vertical_line.bottom, right, top, 0xffffffff,\n                               vertical_line.left, vertical_line.top, left, bottom, 0xffffffff,\n                               vertical_line.right, vertical_line.top, right, bottom, 0xffffffff);\n          }\n        }\n      } break;\n      default: assert(false);\n    }\n  }\n\n  for (int i = 0; i < meat_space->entities_count; ++i) {\n    auto entity = meat_space->entities + i;\n\n    if (selecting_player) {\n      if (is_in_rect(entity->p, selection_rect)) {\n        selecting_player->selected_entities[selecting_player->selected_entities_count++] = entity->id;\n        entity->selected = true;\n      } else {\n        entity->selected = false;\n      }\n    \n}\n    if (entity->selected) {\n      AssetAttributes attrs = {};\n      auto selection = assets_get_texture(AssetType_selection_circle, attrs);\n      f32 left = round(entity->p.x - ((f32)selection.px_width) / 2.0f);\n      f32 right = round(entity->p.x + ((f32)selection.px_width) / 2.0f);\n      f32 bottom = round(entity->p.y - ((f32)selection.px_height) / 2.0f);\n      f32 top = round(entity->p.y + ((f32)selection.px_height) / 2.0f);\n      push_textured_quad(g_render_commands,\n                         selection.handle,\n                         selection.left, selection.bottom, left, bottom, 0xffffffff,\n                         selection.right, selection.bottom, right, bottom, 0xffffffff,\n                         selection.left, selection.top, left, top, 0xffffffff,\n                         selection.right, selection.top, right, top, 0xffffffff);\n    }\n\n    {\n      auto tex = assets_get_texture(entity->asset_type, entity->asset_attributes);\n      f32 left = round(entity->p.x - tex.anchor_x);\n      f32 right = round(entity->p.x + tex.px_width - tex.anchor_x);\n      f32 bottom = round(entity->p.y - tex.anchor_y);\n      f32 top = round(entity->p.y + tex.px_height - tex.anchor_y);\n      push_textured_quad(g_render_commands,\n                         tex.handle,\n                         tex.left, tex.bottom, left, bottom, 0xffffffff,\n                         tex.right, tex.bottom, right, bottom, 0xffffffff,\n                         tex.left, tex.top, left, top, 0xffffffff,\n                         tex.right, tex.top, right, top, 0xffffffff);\n\n      ImGui::Image(assets_get_atlas(entity->asset_type));\n    }\n  }\n\n  set_camera_position(g_render_commands, meat_space->camera.position.x, meat_space->camera.position.y);\n  set_camera_scale(g_render_commands, meat_space->camera.scale.x, meat_space->camera.scale.y);\n}\n",
-			"file": "meat_space.cpp",
-			"file_size": 7675,
-			"file_write_time": 131408535465737556,
+			"file": "build/fall_game.lib",
 			"settings":
 			{
-				"buffer_size": 7675,
-				"encoding": "UTF-8",
+				"buffer_size": 9175,
+				"encoding": "Hexadecimal",
 				"line_ending": "Unix"
 			}
 		},
@@ -641,7 +655,7 @@
 			"file": "game_math.h",
 			"settings":
 			{
-				"buffer_size": 410,
+				"buffer_size": 598,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -650,7 +664,7 @@
 			"file": "build/assets/test_images.pak",
 			"settings":
 			{
-				"buffer_size": 1627840,
+				"buffer_size": 1639552,
 				"encoding": "Hexadecimal",
 				"line_ending": "Unix"
 			}
@@ -659,7 +673,7 @@
 			"file": "asset_manager.h",
 			"settings":
 			{
-				"buffer_size": 563,
+				"buffer_size": 575,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -675,7 +689,7 @@
 			"file": "asset_manager.cpp",
 			"settings":
 			{
-				"buffer_size": 5325,
+				"buffer_size": 5879,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -684,7 +698,7 @@
 			"file": "memory.h",
 			"settings":
 			{
-				"buffer_size": 1454,
+				"buffer_size": 2437,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -701,7 +715,7 @@
 			"file": "build_packager.bat",
 			"settings":
 			{
-				"buffer_size": 555,
+				"buffer_size": 543,
 				"encoding": "UTF-8",
 				"line_ending": "Windows"
 			}
@@ -710,7 +724,7 @@
 			"file": "asset_packager.cpp",
 			"settings":
 			{
-				"buffer_size": 7440,
+				"buffer_size": 10733,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -719,9 +733,33 @@
 			"file": "assets.h",
 			"settings":
 			{
-				"buffer_size": 2125,
+				"buffer_size": 2731,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "preprocess.bat",
+			"settings":
+			{
+				"buffer_size": 525,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "preprocessor.cpp",
+			"settings":
+			{
+				"buffer_size": 20698,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "generated_typeinfo.h",
+			"settings":
+			{
+				"buffer_size": 44197,
+				"line_ending": "Windows"
 			}
 		},
 		{
@@ -745,7 +783,7 @@
 			"file": "render_commands.h",
 			"settings":
 			{
-				"buffer_size": 1290,
+				"buffer_size": 1911,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -754,7 +792,7 @@
 			"file": "renderer_opengl.h",
 			"settings":
 			{
-				"buffer_size": 840,
+				"buffer_size": 1487,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -763,7 +801,7 @@
 			"file": "renderer_opengl.cpp",
 			"settings":
 			{
-				"buffer_size": 6948,
+				"buffer_size": 19111,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -772,7 +810,16 @@
 			"file": "shaders/common.glsl",
 			"settings":
 			{
-				"buffer_size": 235,
+				"buffer_size": 294,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "shaders/lines.glsl",
+			"settings":
+			{
+				"buffer_size": 497,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -781,8 +828,28 @@
 			"file": "shaders/textured_quads.glsl",
 			"settings":
 			{
-				"buffer_size": 471,
+				"buffer_size": 635,
 				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "shaders/peel_composite.glsl",
+			"settings":
+			{
+				"buffer_size": 686,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"contents": "#if VERTEX_SHADER\n\nvoid main(void) {\n  vec4 world_p = vec4(world_coords.xyz, 1.0);\n\n  vec4 view_position = view_transform * world_p;\n\n  gl_Position = vec4(view_position.xyz, 1.0);\n\n  frag_color = color;\n}\n\n#endif\n\n#if FRAGMENT_SHADER\nvoid main(void) {\n  out_color = frag_color;\n\n  if(out_color.a <= 0.01) {\n    discard;\n  }\n}\n\n#endif\n",
+			"file": "shaders/circles.glsl",
+			"file_size": 334,
+			"file_write_time": 131419803226316908,
+			"settings":
+			{
+				"buffer_size": 334,
 				"line_ending": "Unix"
 			}
 		},
@@ -790,7 +857,7 @@
 			"file": "render_commands.cpp",
 			"settings":
 			{
-				"buffer_size": 1887,
+				"buffer_size": 3999,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -808,7 +875,7 @@
 			"file": "geometry.h",
 			"settings":
 			{
-				"buffer_size": 396,
+				"buffer_size": 1927,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -817,9 +884,17 @@
 			"file": "game.h",
 			"settings":
 			{
-				"buffer_size": 273,
+				"buffer_size": 699,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "asset_attributes.h",
+			"settings":
+			{
+				"buffer_size": 1197,
+				"line_ending": "Windows"
 			}
 		},
 		{
@@ -871,7 +946,7 @@
 			"file": "fall_game.cpp",
 			"settings":
 			{
-				"buffer_size": 382,
+				"buffer_size": 471,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -889,7 +964,7 @@
 			"file": "imgui_extensions.h",
 			"settings":
 			{
-				"buffer_size": 197,
+				"buffer_size": 237,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -898,7 +973,7 @@
 			"file": "imgui_extensions.cpp",
 			"settings":
 			{
-				"buffer_size": 327,
+				"buffer_size": 483,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -907,7 +982,7 @@
 			"file": "platform.h",
 			"settings":
 			{
-				"buffer_size": 8832,
+				"buffer_size": 9168,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -1115,12 +1190,11 @@
 	"expanded_folders":
 	[
 		"/C/Users/doug/Documents/github/fall",
-		"/C/Users/doug/Documents/github/fall/assets",
-		"/C/Users/doug/Documents/github/fall/build",
 		"/C/Users/doug/Documents/github/fall/shaders"
 	],
 	"file_history":
 	[
+		"/C/Users/doug/Documents/github/fall/meat_space.cpp",
 		"/C/Users/doug/Downloads/firefox-55.0a1.en-US.mac.complete.mar",
 		"/C/Users/doug/Documents/github/fall/input.h",
 		"/C/Users/doug/Documents/github/fall/region_space.h",
@@ -1247,8 +1321,7 @@
 		"/C/Users/doug/mercurial/firefox/browser/base/.eslintrc.js",
 		"/C/Users/doug/mercurial/firefox/mozconfig",
 		"/C/Users/doug/mercurial/firefox/tools/lint/eslint/eslint-plugin-mozilla/lib/configs/browser-test.js",
-		"/C/Users/doug/mercurial/firefox/browser/base/content/test/appUpdate/sharedUpdateXML.js",
-		"/C/Users/doug/mercurial/firefox/browser/components/customizableui/content/panelUI.inc.xul"
+		"/C/Users/doug/mercurial/firefox/browser/base/content/test/appUpdate/sharedUpdateXML.js"
 	],
 	"find":
 	{
@@ -1274,6 +1347,43 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"FragUV",
+			"ResultColor",
+			"Peel3",
+			"Peel2",
+			"Peel1",
+			"Peel0",
+			"Peel0Sampler",
+			"Peel0",
+			"FragZ",
+			"ClipDepth",
+			"round",
+			"m->",
+			"64",
+			"8",
+			"16",
+			"case ",
+			"mi.offset",
+			", indentation, \"\"",
+			"indentation, \"\",",
+			"%*s",
+			"indentation, \"\"",
+			"return \"",
+			"break;",
+			", indentation",
+			"ID_",
+			"typedef ",
+			"#ifndef",
+			"_Asset",
+			"enum Asset",
+			"AssetType_",
+			"AssetColor_",
+			"AssetClass_",
+			"AssetMoveState_",
+			"AssetDirection_",
+			"COLOR",
+			"ASSET_MOVE_STATE",
+			"DIRECTION",
 			" + selection.offs",
 			"1.0f",
 			"tex.px_height",
@@ -1364,44 +1474,7 @@
 			"LoadTryIndex",
 			"GameCode",
 			"GameCodeDLL",
-			"GameCode",
-			"memory",
-			" g_",
-			"source_dll_name",
-			"debug_print_ring_buffer",
-			"platform",
-			"g_",
-			"extern ",
-			"&g_render_commands",
-			"game_state",
-			"g_game_state",
-			"game_state",
-			"g_render",
-			"IsValid",
-			"UpdateAndRender",
-			"g_asset_manager()",
-			"g_asset_manager->",
-			"g_asset_manager",
-			"TransientState",
-			"^[0-9a-z]+ g_",
-			"GameCodeDLL",
-			"DLLLastWriteTime",
-			"Ignored",
-			"Result",
-			"win32_game_code",
-			"LockFileName",
-			"TempDLLName",
-			"SourceDLLName",
-			"texture_handle",
-			"Texture",
-			"texture",
-			"platform_register_texture",
-			"register_texture",
-			"free_file_memory\\(",
-			"free_file_memory",
-			"FileLastWriteTime",
-			"register_texture",
-			"\t"
+			"GameCode"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1425,7 +1498,7 @@
 	"groups":
 	[
 		{
-			"selected": 40,
+			"selected": 36,
 			"sheets":
 			[
 				{
@@ -1434,7 +1507,7 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 129,
+						"buffer_size": 609,
 						"regions":
 						{
 						},
@@ -1457,7 +1530,7 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 28,
+					"stack_index": 39,
 					"type": "text"
 				},
 				{
@@ -1466,15 +1539,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1122,
+						"buffer_size": 7492,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								318,
-								318
+								5190,
+								5190
 							]
 						],
 						"settings":
@@ -1486,19 +1559,81 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 1494.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 9,
+					"stack_index": 6,
 					"type": "text"
 				},
 				{
 					"buffer": 2,
+					"file": "meat_space.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 45634,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"glslvalidator_configured": true,
+							"glslvalidator_enabled": 1,
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 13128.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 5,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": ".gitignore",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 48,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								48,
+								48
+							]
+						],
+						"settings":
+						{
+							"glslvalidator_configured": true,
+							"glslvalidator_enabled": 1,
+							"syntax": "Packages/zzz A File Icon zzz/aliases/Shell Script (Git).sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 7,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
 					"file": "sdl_platform.cpp",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 17173,
+						"buffer_size": 17670,
 						"regions":
 						{
 						},
@@ -1521,11 +1656,11 @@
 						"translation.y": 7219.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 18,
+					"stack_index": 30,
 					"type": "text"
 				},
 				{
-					"buffer": 3,
+					"buffer": 5,
 					"file": "libs/include/SDL2/SDL_atomic.h",
 					"semi_transient": false,
 					"settings":
@@ -1553,16 +1688,16 @@
 						"translation.y": 3302.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 35,
+					"stack_index": 45,
 					"type": "text"
 				},
 				{
-					"buffer": 4,
+					"buffer": 6,
 					"file": "sdl_platform_input.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 6706,
+						"buffer_size": 6878,
 						"regions":
 						{
 						},
@@ -1585,11 +1720,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 17,
+					"stack_index": 29,
 					"type": "text"
 				},
 				{
-					"buffer": 5,
+					"buffer": 7,
 					"file": "input.h",
 					"semi_transient": false,
 					"settings":
@@ -1615,11 +1750,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 14,
+					"stack_index": 26,
 					"type": "text"
 				},
 				{
-					"buffer": 6,
+					"buffer": 8,
 					"file": "sdl_platform.h",
 					"semi_transient": false,
 					"settings":
@@ -1647,11 +1782,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 25,
+					"stack_index": 36,
 					"type": "text"
 				},
 				{
-					"buffer": 7,
+					"buffer": 9,
 					"file": "jobthief.h",
 					"semi_transient": false,
 					"settings":
@@ -1679,11 +1814,11 @@
 						"translation.y": 74.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 34,
+					"stack_index": 44,
 					"type": "text"
 				},
 				{
-					"buffer": 8,
+					"buffer": 10,
 					"file": "fall.sublime-project",
 					"semi_transient": false,
 					"settings":
@@ -1709,11 +1844,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 40,
+					"stack_index": 50,
 					"type": "text"
 				},
 				{
-					"buffer": 9,
+					"buffer": 11,
 					"file": ".clang_complete",
 					"semi_transient": false,
 					"settings":
@@ -1739,24 +1874,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 31,
+					"stack_index": 42,
 					"type": "text"
 				},
 				{
-					"buffer": 10,
+					"buffer": 12,
 					"file": "game.cpp",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 3410,
+						"buffer_size": 13602,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								995,
-								995
+								0,
+								0
 							]
 						],
 						"settings":
@@ -1771,54 +1906,24 @@
 						"translation.y": 301.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 4,
+					"stack_index": 19,
 					"type": "text"
 				},
 				{
-					"buffer": 11,
+					"buffer": 13,
 					"file": "meat_space.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1114,
+						"buffer_size": 7436,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								435,
-								456
-							]
-						],
-						"settings":
-						{
-							"glslvalidator_configured": true,
-							"glslvalidator_enabled": 1,
-							"syntax": "Packages/C++/C++.sublime-syntax"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 5,
-					"type": "text"
-				},
-				{
-					"buffer": 12,
-					"file": "meat_space.cpp",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 7675,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								5848,
-								5848
+								0,
+								0
 							]
 						],
 						"settings":
@@ -1830,49 +1935,19 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 1734.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 1,
-					"type": "text"
-				},
-				{
-					"buffer": 13,
-					"file": "game_math.h",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 410,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								359,
-								359
-							]
-						],
-						"settings":
-						{
-							"glslvalidator_configured": true,
-							"glslvalidator_enabled": 1,
-							"syntax": "Packages/C++/C++.sublime-syntax"
-						},
-						"translation.x": 0.0,
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 12,
+					"stack_index": 16,
 					"type": "text"
 				},
 				{
 					"buffer": 14,
-					"file": "build/assets/test_images.pak",
+					"file": "build/fall_game.lib",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1627840,
+						"buffer_size": 9175,
 						"regions":
 						{
 						},
@@ -1893,16 +1968,76 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 32,
+					"stack_index": 15,
 					"type": "text"
 				},
 				{
 					"buffer": 15,
+					"file": "game_math.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 598,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								359,
+								359
+							]
+						],
+						"settings":
+						{
+							"glslvalidator_configured": true,
+							"glslvalidator_enabled": 1,
+							"syntax": "Packages/C++/C++.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 24,
+					"type": "text"
+				},
+				{
+					"buffer": 16,
+					"file": "build/assets/test_images.pak",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1639552,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"glslvalidator_configured": true,
+							"glslvalidator_enabled": 1,
+							"syntax": "Packages/Text/Plain text.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 43,
+					"type": "text"
+				},
+				{
+					"buffer": 17,
 					"file": "asset_manager.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 563,
+						"buffer_size": 575,
 						"regions":
 						{
 						},
@@ -1923,11 +2058,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 7,
+					"stack_index": 21,
 					"type": "text"
 				},
 				{
-					"buffer": 16,
+					"buffer": 18,
 					"semi_transient": false,
 					"settings":
 					{
@@ -1953,16 +2088,16 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 42,
+					"stack_index": 52,
 					"type": "text"
 				},
 				{
-					"buffer": 17,
+					"buffer": 19,
 					"file": "asset_manager.cpp",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 5325,
+						"buffer_size": 5879,
 						"regions":
 						{
 						},
@@ -1985,16 +2120,16 @@
 						"translation.y": 1350.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 2,
+					"stack_index": 18,
 					"type": "text"
 				},
 				{
-					"buffer": 18,
+					"buffer": 20,
 					"file": "memory.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1454,
+						"buffer_size": 2437,
 						"regions":
 						{
 						},
@@ -2009,17 +2144,19 @@
 						{
 							"glslvalidator_configured": true,
 							"glslvalidator_enabled": 1,
-							"syntax": "Packages/C++/C++.sublime-syntax"
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 26,
+					"stack_index": 37,
 					"type": "text"
 				},
 				{
-					"buffer": 19,
+					"buffer": 21,
 					"file": "libs/include/Judy.h",
 					"semi_transient": false,
 					"settings":
@@ -2047,24 +2184,24 @@
 						"translation.y": 9542.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 41,
+					"stack_index": 51,
 					"type": "text"
 				},
 				{
-					"buffer": 20,
+					"buffer": 22,
 					"file": "build_packager.bat",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 555,
+						"buffer_size": 543,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								276,
-								276
+								423,
+								423
 							]
 						],
 						"settings":
@@ -2077,75 +2214,169 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 33,
-					"type": "text"
-				},
-				{
-					"buffer": 21,
-					"file": "asset_packager.cpp",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 7440,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								7004,
-								7004
-							]
-						],
-						"settings":
-						{
-							"glslvalidator_configured": true,
-							"glslvalidator_enabled": 1,
-							"syntax": "Packages/C++/C++.sublime-syntax",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 4254.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 6,
-					"type": "text"
-				},
-				{
-					"buffer": 22,
-					"file": "assets.h",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 2125,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								1042,
-								1042
-							]
-						],
-						"settings":
-						{
-							"glslvalidator_configured": true,
-							"glslvalidator_enabled": 1,
-							"syntax": "Packages/C++/C++.sublime-syntax",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 648.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 3,
+					"stack_index": 11,
 					"type": "text"
 				},
 				{
 					"buffer": 23,
+					"file": "asset_packager.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 10733,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"glslvalidator_configured": true,
+							"glslvalidator_enabled": 1,
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 3690.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 20,
+					"type": "text"
+				},
+				{
+					"buffer": 24,
+					"file": "assets.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2731,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"glslvalidator_configured": true,
+							"glslvalidator_enabled": 1,
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 12,
+					"type": "text"
+				},
+				{
+					"buffer": 25,
+					"file": "preprocess.bat",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 525,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								454,
+								454
+							]
+						],
+						"settings":
+						{
+							"glslvalidator_configured": true,
+							"glslvalidator_enabled": 1,
+							"syntax": "Packages/Batch File/Batch File.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 10,
+					"type": "text"
+				},
+				{
+					"buffer": 26,
+					"file": "preprocessor.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 20698,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"glslvalidator_configured": true,
+							"glslvalidator_enabled": 1,
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 13655.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 8,
+					"type": "text"
+				},
+				{
+					"buffer": 27,
+					"file": "generated_typeinfo.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 44197,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"glslvalidator_configured": true,
+							"glslvalidator_enabled": 1,
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 9,
+					"type": "text"
+				},
+				{
+					"buffer": 28,
 					"file": "imgui.ini",
 					"semi_transient": false,
 					"settings":
@@ -2171,11 +2402,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 36,
+					"stack_index": 46,
 					"type": "text"
 				},
 				{
-					"buffer": 24,
+					"buffer": 29,
 					"file": "imgui_memory_editor.h",
 					"semi_transient": false,
 					"settings":
@@ -2203,16 +2434,16 @@
 						"translation.y": 1683.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 38,
+					"stack_index": 48,
 					"type": "text"
 				},
 				{
-					"buffer": 25,
+					"buffer": 30,
 					"file": "render_commands.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1290,
+						"buffer_size": 1911,
 						"regions":
 						{
 						},
@@ -2235,16 +2466,16 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 20,
+					"stack_index": 32,
 					"type": "text"
 				},
 				{
-					"buffer": 26,
+					"buffer": 31,
 					"file": "renderer_opengl.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 840,
+						"buffer_size": 1487,
 						"regions":
 						{
 						},
@@ -2267,24 +2498,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 39,
+					"stack_index": 49,
 					"type": "text"
 				},
 				{
-					"buffer": 27,
+					"buffer": 32,
 					"file": "renderer_opengl.cpp",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 6948,
+						"buffer_size": 19111,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								5204,
-								5204
+								0,
+								0
 							]
 						],
 						"settings":
@@ -2299,24 +2530,24 @@
 						"translation.y": 744.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 10,
+					"stack_index": 23,
 					"type": "text"
 				},
 				{
-					"buffer": 28,
+					"buffer": 33,
 					"file": "shaders/common.glsl",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 235,
+						"buffer_size": 294,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								235,
-								235
+								228,
+								228
 							]
 						],
 						"settings":
@@ -2329,24 +2560,54 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 43,
+					"stack_index": 2,
 					"type": "text"
 				},
 				{
-					"buffer": 29,
-					"file": "shaders/textured_quads.glsl",
+					"buffer": 34,
+					"file": "shaders/lines.glsl",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 471,
+						"buffer_size": 497,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								167,
-								167
+								413,
+								252
+							]
+						],
+						"settings":
+						{
+							"glslvalidator_configured": true,
+							"glslvalidator_enabled": 1,
+							"syntax": "Packages/OpenGL Shading Language (GLSL)/GLSL.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 35,
+					"file": "shaders/textured_quads.glsl",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 635,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								635
 							]
 						],
 						"settings":
@@ -2361,16 +2622,80 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 11,
+					"stack_index": 3,
 					"type": "text"
 				},
 				{
-					"buffer": 30,
+					"buffer": 36,
+					"file": "shaders/peel_composite.glsl",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 686,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								257,
+								257
+							]
+						],
+						"settings":
+						{
+							"glslvalidator_configured": true,
+							"glslvalidator_enabled": 1,
+							"syntax": "Packages/OpenGL Shading Language (GLSL)/GLSL.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 37,
+					"file": "shaders/circles.glsl",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 334,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								213,
+								213
+							]
+						],
+						"settings":
+						{
+							"glslvalidator_configured": true,
+							"glslvalidator_enabled": 1,
+							"syntax": "Packages/OpenGL Shading Language (GLSL)/GLSL.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
+					"type": "text"
+				},
+				{
+					"buffer": 38,
 					"file": "render_commands.cpp",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1887,
+						"buffer_size": 3999,
 						"regions":
 						{
 						},
@@ -2393,11 +2718,11 @@
 						"translation.y": 223.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 19,
+					"stack_index": 31,
 					"type": "text"
 				},
 				{
-					"buffer": 31,
+					"buffer": 39,
 					"file": "imgui_impl_sdl_gl3.cpp",
 					"semi_transient": false,
 					"settings":
@@ -2425,16 +2750,16 @@
 						"translation.y": 2982.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 24,
+					"stack_index": 35,
 					"type": "text"
 				},
 				{
-					"buffer": 32,
+					"buffer": 40,
 					"file": "geometry.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 396,
+						"buffer_size": 1927,
 						"regions":
 						{
 						},
@@ -2456,24 +2781,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 13,
+					"stack_index": 25,
 					"type": "text"
 				},
 				{
-					"buffer": 33,
+					"buffer": 41,
 					"file": "game.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 273,
+						"buffer_size": 699,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								144,
-								144
+								307,
+								307
 							]
 						],
 						"settings":
@@ -2486,11 +2811,41 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 21,
+					"stack_index": 14,
 					"type": "text"
 				},
 				{
-					"buffer": 34,
+					"buffer": 42,
+					"file": "asset_attributes.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1197,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1159,
+								1159
+							]
+						],
+						"settings":
+						{
+							"glslvalidator_configured": true,
+							"glslvalidator_enabled": 1,
+							"syntax": "Packages/C++/C++.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 108.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 13,
+					"type": "text"
+				},
+				{
+					"buffer": 43,
 					"file": "imgui/imgui.cpp",
 					"semi_transient": false,
 					"settings":
@@ -2518,11 +2873,11 @@
 						"translation.y": 99246.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 16,
+					"stack_index": 28,
 					"type": "text"
 				},
 				{
-					"buffer": 35,
+					"buffer": 44,
 					"file": "imgui/imgui_internal.h",
 					"semi_transient": false,
 					"settings":
@@ -2550,11 +2905,11 @@
 						"translation.y": 966.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 30,
+					"stack_index": 41,
 					"type": "text"
 				},
 				{
-					"buffer": 36,
+					"buffer": 45,
 					"file": "imgui/imgui.h",
 					"semi_transient": false,
 					"settings":
@@ -2582,11 +2937,11 @@
 						"translation.y": 4152.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 15,
+					"stack_index": 27,
 					"type": "text"
 				},
 				{
-					"buffer": 37,
+					"buffer": 46,
 					"file": "imgui/imgui_draw.cpp",
 					"semi_transient": false,
 					"settings":
@@ -2614,11 +2969,11 @@
 						"translation.y": 19344.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 29,
+					"stack_index": 40,
 					"type": "text"
 				},
 				{
-					"buffer": 38,
+					"buffer": 47,
 					"file": "fall.cpp",
 					"semi_transient": false,
 					"settings":
@@ -2644,16 +2999,16 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 23,
+					"stack_index": 34,
 					"type": "text"
 				},
 				{
-					"buffer": 39,
+					"buffer": 48,
 					"file": "fall_game.cpp",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 382,
+						"buffer_size": 471,
 						"regions":
 						{
 						},
@@ -2674,11 +3029,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 22,
+					"stack_index": 33,
 					"type": "text"
 				},
 				{
-					"buffer": 40,
+					"buffer": 49,
 					"file": "build.bat",
 					"semi_transient": false,
 					"settings":
@@ -2690,8 +3045,8 @@
 						"selection":
 						[
 							[
-								628,
-								628
+								728,
+								728
 							]
 						],
 						"settings":
@@ -2704,16 +3059,16 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 0,
+					"stack_index": 17,
 					"type": "text"
 				},
 				{
-					"buffer": 41,
+					"buffer": 50,
 					"file": "imgui_extensions.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 197,
+						"buffer_size": 237,
 						"regions":
 						{
 						},
@@ -2734,16 +3089,16 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 37,
+					"stack_index": 47,
 					"type": "text"
 				},
 				{
-					"buffer": 42,
+					"buffer": 51,
 					"file": "imgui_extensions.cpp",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 327,
+						"buffer_size": 483,
 						"regions":
 						{
 						},
@@ -2764,24 +3119,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 27,
+					"stack_index": 38,
 					"type": "text"
 				},
 				{
-					"buffer": 43,
+					"buffer": 52,
 					"file": "platform.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 8832,
+						"buffer_size": 9168,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								7118,
-								7118
+								0,
+								0
 							]
 						],
 						"settings":
@@ -2793,10 +3148,10 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 4353.0,
+						"translation.y": 4356.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 8,
+					"stack_index": 22,
 					"type": "text"
 				}
 			]
@@ -2855,24 +3210,36 @@
 		"selected_items":
 		[
 			[
-				"bui",
-				"build.bat"
+				"",
+				"shaders\\peel_composite.glsl"
 			],
 			[
 				"mea",
 				"meat_space.cpp"
 			],
 			[
-				"assema",
-				"asset_manager.cpp"
+				"de",
+				"debug.cpp"
+			],
+			[
+				"prep",
+				"preprocessor.cpp"
 			],
 			[
 				"ass",
-				"asset_manager.cpp"
+				"asset_attributes.h"
 			],
 			[
-				"",
-				"meat_space.cpp"
+				"assetatt",
+				"asset_attributes.h"
+			],
+			[
+				"bui",
+				"build.bat"
+			],
+			[
+				"assema",
+				"asset_manager.cpp"
 			],
 			[
 				"gam",
@@ -2889,10 +3256,6 @@
 			[
 				"assetm",
 				"asset_manager.h"
-			],
-			[
-				"de",
-				"debug.cpp"
 			],
 			[
 				"pla",
@@ -3357,14 +3720,6 @@
 			[
 				"browser.",
 				"browser\\base\\content\\browser.js"
-			],
-			[
-				"testupdatewi",
-				"testing\\firefox-ui\\tests\\puppeteer\\test_update_wizard.py"
-			],
-			[
-				"nsupdates",
-				"toolkit\\mozapps\\update\\nsUpdateService.js"
 			]
 		],
 		"width": 0.0

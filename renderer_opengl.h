@@ -7,8 +7,12 @@
 #include "platform.h"
 
 enum OpenGLProgramType {
+  OpenGLProgramType_lines,
   OpenGLProgramType_textured_quads,
-  OpenGLProgramType_Count,
+  OpenGLProgramType_lines_depth_peeling,
+  OpenGLProgramType_textured_quads_depth_peeling,
+  OpenGLProgramType_peel_composite,
+  OpenGLProgramType_count,
 };
 
 struct OpenGLProgramBase {
@@ -19,6 +23,8 @@ struct OpenGLProgramBase {
   GLuint color;
 
   GLuint view_transform;
+
+  GLuint depth_sampler;
 };
 
 struct OpenGLProgram_textured_quads {
@@ -27,11 +33,38 @@ struct OpenGLProgram_textured_quads {
   GLuint texture_sampler;
 };
 
+struct OpenGLProgram_textured_quads_depth_peeling {
+  OpenGLProgramBase base;
+
+  GLuint texture_sampler;
+};
+
+struct OpenGLProgram_lines {
+  OpenGLProgramBase base;
+};
+
+struct OpenGLProgram_lines_depth_peeling {
+  OpenGLProgramBase base;
+};
+
+struct OpenGLProgram_peel_composite {
+  OpenGLProgramBase base;
+
+  GLuint peel_samplers[4];
+};
+
+struct OpenGLFrameBuffer {
+  GLuint handle;
+  GLuint color_buffer;
+  GLuint depth_buffer;
+};
+
 struct OpenGLState {
   i32 program_memory_used;
   char program_memory[1024];
-  OpenGLProgramBase* programs[OpenGLProgramType_Count];
+  OpenGLProgramBase* programs[OpenGLProgramType_count];
   GLuint vertex_buffer;
+  OpenGLFrameBuffer peel_buffers[4];
 };
 
 struct RenderCommands;

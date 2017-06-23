@@ -14,12 +14,12 @@
 #endif
 
 #ifdef RENDERER_OPENGL
-#include "GL/glew.h"
+#include "libs/include/GL/glew.h"
 #include "GL/glu.h"
 #include "GL/gl.h"
 #endif
 
-#include "SDL2/SDL.h"
+#include "libs/include/SDL2/SDL.h"
 #include "imgui/imgui.h"
 #include "imgui_impl_sdl_gl3.h"
 #include "jobthief.h"
@@ -415,25 +415,27 @@ int CALLBACK WinMain(
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glLineWidth(2.0f);
 
-  size_t pixel_bytes = START_WIDTH * START_HEIGHT * 4;
-  void* pixels = malloc(pixel_bytes);
-  // void* pixels = aligned_alloc(64, pixel_bytes + (pixel_bytes % 64));
-
   const u64 megabytes = 1024LL * 1024LL;
-  g_game_state = (GameState*)calloc(megabytes * 256, sizeof(u8));
-  g_transient_state = (TransientState*)calloc(megabytes * 256, sizeof(u8));
+  g_game_state = (GameState*)calloc(GAME_MEMORY_SIZE, sizeof(u8));
+  g_transient_state = (TransientState*)calloc(TRANSIENT_MEMORY_SIZE, sizeof(u8));
 
   void** texture_handles = (void**)calloc(megabytes * 8, sizeof(u8));
-  TexturedQuadVertex* vertices = (TexturedQuadVertex*)calloc(megabytes * 16, sizeof(u8));
+  auto textured_quad_vertices_memory = megabytes * 16;
+  auto circle_vertices_memory = megabytes * 1;
+  TexturedQuadVertex* quad_vertices = (TexturedQuadVertex*)calloc(textured_quad_vertices_memory, sizeof(u8));
+  LineVertex* circle_vertices = (LineVertex*)calloc(circle_vertices_memory, sizeof(u8));
+  i32* line_loop_lengths = (i32*)calloc(circle_vertices_memory / 4, sizeof(u8));
   g_render_commands = (RenderCommands*)calloc(1, sizeof(RenderCommands));
-  g_render_commands->vertex_array = vertices;
+  g_render_commands->textured_quad_vertices = quad_vertices;
+  g_render_commands->line_vertices = circle_vertices;
+  g_render_commands->line_loop_lengths = line_loop_lengths;
   g_render_commands->quad_textures = texture_handles;
-  g_render_commands->max_vertex_count = megabytes * 16 / sizeof(TexturedQuadVertex);
+  g_render_commands->textured_quad_vertices_max_count = textured_quad_vertices_memory / sizeof(TexturedQuadVertex);
+  g_render_commands->line_vertices_max_count = circle_vertices_memory / sizeof(LineVertex);
   g_render_commands->screen_width = START_WIDTH;
   g_render_commands->screen_height = START_HEIGHT;
 
   GameMemory game_memory = {};
-
   game_memory.game_state = g_game_state;
   game_memory.transient_state = g_transient_state;
   game_memory.input = g_input;
@@ -448,8 +450,6 @@ int CALLBACK WinMain(
 
   context.controller_handle = find_controller_handle();
 
-  u32 frame_index = 0;
-  u32 s = 0;
   bool running = true;
 
   PlatformInput prev_input = {};
@@ -531,9 +531,12 @@ int CALLBACK WinMain(
     g_platform_render_settings.width = START_WIDTH;
     g_platform_render_settings.height = START_HEIGHT;
 
-    next_input.dt = dt;
+    next_input.dt = 1.0f / FRAME_RATE;
 
-    game_memory.input = g_input = &next_input;
+    // Allow g_input to be mutable, in order for code to have the option of
+    // eating input events.
+    PlatformInput tmp_input = next_input;
+    game_memory.input = g_input = &tmp_input;
 
     ImGui_ImplSdlGL3_NewFrame(context.window);
     g_game_code.update_and_render(&game_memory);
@@ -543,7 +546,9 @@ int CALLBACK WinMain(
 #ifdef RENDERER_OPENGL
     opengl_render_commands(g_render_commands, START_WIDTH, START_HEIGHT);
 #endif
-    g_render_commands->vertex_count = 0;
+    g_render_commands->textured_quad_vertices_count = 0;
+    g_render_commands->line_vertices_count = 0;
+    g_render_commands->line_loop_lengths_count = 0;
     g_game_code.debug_end_frame();
     g_game_code.imgui_render();
 
