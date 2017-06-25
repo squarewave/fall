@@ -250,7 +250,7 @@ int main(int argc, char const *argv[]) {
   attrs.color = AssetColor_dark;
   attrs.direction = AssetDirection_forward;
   attrs.move_state = AssetMoveState_standing;
-  add_png(AssetType_crew, attrs, (char*)"assets/crew_science_dark_forward_standing.png", 6, 2);
+  add_png(AssetType_crew, attrs, (char*)"assets/crew_gun_01.png", 6, 2);
 
   ZERO(attrs);
   attrs.asset_class = AssetClass_science;
@@ -273,6 +273,9 @@ int main(int argc, char const *argv[]) {
 
   ZERO(attrs);
   add_png(AssetType_boulder_large, attrs, (char*)"assets/boulder_medium_01.png");
+
+  ZERO(attrs);
+  add_png(AssetType_boulder_small, attrs, (char*)"assets/boulder_small_01.png");
 
   ZERO(attrs);
   add_png(AssetType_tree_medium, attrs, (char*)"assets/tree_medium_01.png");

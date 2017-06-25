@@ -90,21 +90,33 @@ inline void* transient_realloc_(void* base, size_t old_size, size_t new_size) {
 
 #define stretchy_buffer_init() (transient_alloc_(0))
 #define stretchy_buffer_push(val) stretchy_buffer_push_(sizeof(val), &(val))
-inline void* stretchy_buffer_push_(size_t size, void* val) {
+inline void* stretchy_buffer_grow_(size_t size) {
   char* base = (char*)(g_transient_state + 1);
   i64* tip = (i64*)base;
 
 #if FALL_INTERNAL
   char* result = *tip + sizeof(*tip) + base - sizeof(u32);
-  *(u32*)(result + size) = MEMORY_SENTRY;
-  assert(*(u32*)result == MEMORY_SENTRY);
-  *tip += size;
+  if  (size) {
+    assert((i64)result - (i64)base < TRANSIENT_MEMORY_SIZE);
+    *(u32*)(result + size) = MEMORY_SENTRY;
+    assert(*(u32*)result == MEMORY_SENTRY);
+    *tip += size;
+  }
 #else
   char* result = *tip + sizeof(*tip) + base;
-  assert((i64)result - (i64)base < MAX_TRANSIENT_MEMORY);
+  assert((i64)result - (i64)base < TRANSIENT_MEMORY_SIZE);
   *tip += size;
 #endif
 
+  return result;
+}
+
+inline void* stretchy_buffer_tip() {
+  return stretchy_buffer_grow_(0);
+}
+
+inline void* stretchy_buffer_push_(size_t size, void* val) {
+  auto result = stretchy_buffer_grow_(size);
   memcpy(result, val, size);
   return result;
 }
@@ -115,14 +127,29 @@ inline void reset_transient_memory() {
   *tip = 0;
 }
 
-char* tprintf(const char* fmt, ...)
-{
+char* tprintf(const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
 
-  int size = snprintf(NULL, 0, "%d", 132);
+  int size = vsnprintf(NULL, 0, "%s", args);
   char * a = transient_alloc_array(char, size + 1);
-  sprintf(a, "%d", 132);
+  vsnprintf(a, size + 1, "%s", args);
+
+  va_end(args);
+
+  return a;
+}
+
+char* sbprintf(const char* fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+
+  int size = vsnprintf(NULL, 0, "%s", args);
+  size_t aligned_size = size + 8;
+  aligned_size &= ~0b0111;
+  aligned_size |= 0b1000;
+  char * a = (char*)stretchy_buffer_grow_(aligned_size);
+  vsnprintf(a, aligned_size, "%s", args);
 
   va_end(args);
 

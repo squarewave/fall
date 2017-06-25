@@ -82,8 +82,23 @@ DEBUG_PLATFORM_READ_ENTIRE_FILE(DEBUG_platform_read_entire_file) {
 }
 
 DEBUG_PLATFORM_WRITE_ENTIRE_FILE(DEBUG_platform_write_entire_file) {
-  assert(false);
-  return 0;
+  b32 result = false;
+
+  HANDLE handle = CreateFileA(filename, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0);
+  if (handle != INVALID_HANDLE_VALUE) {
+    DWORD BytesWritten;
+    if (WriteFile(handle, memory, size, &BytesWritten, 0)) {
+      result = (BytesWritten == size);
+    } else {
+      LOG("WriteFile failed");
+    }
+
+    CloseHandle(handle);
+  } else {
+    LOG("WriteFile failed");
+  }
+
+  return(result);
 }
 
 #ifdef PLATFORM_WINDOWS

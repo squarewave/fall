@@ -27,3 +27,35 @@ inline TypeInfo get_type_info(TypeInfo_ID id) {
   }
   return {};
 }
+
+inline b32 next_member(TypeInfo_ID id, MemberInfo** member_info) {
+  assert(id > TypeInfo_ID_end_primitives);
+  auto ti = get_type_info(id);
+  if (!*member_info) {
+    *member_info = TypeInfo_member_table + ti.members_start;
+    assert(ti.members_start < ARRAY_LENGTH(TypeInfo_member_table));
+    assert((*member_info)->parent_type == id);
+    return true;
+  } else {
+    *member_info = *member_info + 1;
+    if (*member_info - TypeInfo_member_table < ARRAY_LENGTH(TypeInfo_member_table) &&
+      (*member_info)->parent_type == id) {
+      return true;
+    } else {
+      *member_info = NULL;
+      return false;
+    }
+  }
+}
+
+#define enum_member_name(type, value) enum_member_name_(TypeInfo_ID_##type, value)
+inline char* enum_member_name_(TypeInfo_ID type_id, int value) {
+  for (i32 i = 0; i < ARRAY_LENGTH(TypeInfo_member_table); i++) {
+    auto ti = TypeInfo_member_table[i];
+    if (ti.member_kind == MemberKind_enum && ti.parent_type == type_id && ti.enum_value == value) {
+      return ti.member_name;
+    }
+  }
+
+  return NULL;
+}

@@ -4,6 +4,8 @@
 #include "render_commands.cpp"
 #include "asset_manager.cpp"
 #include "meat_space.cpp"
+#include "serialize.cpp"
+#include "tools.cpp"
 
 #ifdef FALL_INTERNAL
 #include "debug.cpp"

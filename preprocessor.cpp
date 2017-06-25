@@ -67,6 +67,7 @@ enum MemberKind {
 typedef struct {
   Slice type_name;
   TypeKind kind;
+  int members_start;
 } Type;
 
 typedef struct {
@@ -845,8 +846,13 @@ struct MemberInfo {
 
 MemberInfo TypeInfo_member_table[] = {)");
 
+  int last_parent_type = -1;
   for (int i = 0; i < sb_count(p.members); i++) {
     auto m = p.members[i];
+    if (m.parent_type != last_parent_type) {
+      p.types[m.parent_type].members_start = i;
+      last_parent_type = m.parent_type;
+    }
     auto struct_name = p.types[m.parent_type].type_name;
     if (m.kind == MemberKind_enum) {
       printf("  {\"%.*s\", TypeInfo_ID_%.*s, TypeInfo_ID_i32, %s, %d, 0, 0, %d},\n",
@@ -887,16 +893,18 @@ struct TypeInfo {
   TypeInfo_ID id;
   TypeKind kind;
   size_t size;
+  int members_start;
 };
 
 TypeInfo TypeInfo_custom_type_table[] = {)");
 
   for (int i = 0; i < sb_count(p.types); i++) {
     auto t = p.types[i];
-    printf("  {TypeInfo_ID_%.*s, %s, sizeof(%.*s)},\n",
+    printf("  {TypeInfo_ID_%.*s, %s, sizeof(%.*s), %d},\n",
            t.type_name.len, t.type_name.data,
            get_type_kind_str(t.kind),
-           t.type_name.len, t.type_name.data);
+           t.type_name.len, t.type_name.data,
+           t.members_start);
   }
 
   puts(R"(

@@ -202,17 +202,6 @@ void inspect_struct_(TypeInfo_ID type_id, void* value, char* member_name, b32 co
   PopID();
 }
 
-char* enum_member_name_(TypeInfo_ID type_id, int value) {
-  for (i32 i = 0; i < ARRAY_LENGTH(TypeInfo_member_table); i++) {
-    auto ti = TypeInfo_member_table[i];
-    if (ti.member_kind == MemberKind_enum && ti.parent_type == type_id && ti.enum_value == value) {
-      return ti.member_name;
-    }
-  }
-
-  return NULL;
-}
-
 void* debug_serialize_struct_(TypeInfo_ID type_id, void* value) {
   stretchy_buffer_init();
   for (i32 i = 0; i < ARRAY_LENGTH(TypeInfo_member_table); i++) {

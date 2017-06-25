@@ -70,6 +70,18 @@ reflectable enum SelectionGroup {
   SelectionGroup_enemy,
 };
 
+reflectable enum MeatSpaceEntityTemplateId {
+  MeatSpaceEntityTemplateId_none,
+  MeatSpaceEntityTemplateId_tile,
+  MeatSpaceEntityTemplateId_crew_gun,
+  MeatSpaceEntityTemplateId_crew_healing_ray,
+  MeatSpaceEntityTemplateId_crew_grenade_launcher,
+  MeatSpaceEntityTemplateId_boulder_small,
+  MeatSpaceEntityTemplateId_boulder_large,
+  MeatSpaceEntityTemplateId_tree_medium,
+  MeatSpaceEntityTemplateId_tree_large,
+};
+
 const u32 ENTITY_FLAG_TRAVERSABLE = 0x01;
 const u32 ENTITY_FLAG_CHARACTER   = 0x02;
 const u32 ENTITY_FLAG_DEAD        = 0x04;
@@ -100,6 +112,9 @@ reflectable struct MeatSpaceEntity {
 
   b32 unfinished_move;
   GridCell unfinished_move_target;
+
+  MeatSpaceEntityTemplateId template_id;
+  vec2 texture_anchor;
 
   MeatSpaceCommand command;
 };
@@ -227,17 +242,6 @@ reflectable union CollisionVolume {
   CollisionVolume_elipse elipse;
 };
 
-reflectable enum MeatSpaceEntityTemplateId {
-  MeatSpaceEntityTemplateId_none,
-  MeatSpaceEntityTemplateId_tile,
-  MeatSpaceEntityTemplateId_crew_gun,
-  MeatSpaceEntityTemplateId_crew_healing_ray,
-  MeatSpaceEntityTemplateId_crew_grenade_launcher,
-  MeatSpaceEntityTemplateId_boulder_large,
-  MeatSpaceEntityTemplateId_tree_medium,
-  MeatSpaceEntityTemplateId_tree_large,
-};
-
 reflectable struct MeatSpaceEntityTemplate {
   MeatSpaceEntityTemplateId id;
   u32 flags;
@@ -246,12 +250,18 @@ reflectable struct MeatSpaceEntityTemplate {
 
   f32 z_bias;
   rect2 selection_bounds;
-  i32 collision_boxes;
+  i32 collision_volumes;
   vec2 target_center;
   vec2 firing_center;
   MeatSpaceWeapon weapon;
 
+  vec2 texture_anchor;
+
   f32 max_health;
+
+#if FALL_INTERNAL
+  b32 editing;
+#endif
 };
 
 reflectable struct MeatSpaceEntityTemplateCollection {
@@ -301,6 +311,7 @@ MeatSpaceEntityTemplate* get_entity_template(MeatSpace* meat_space, MeatSpaceEnt
 MeatSpaceEntity* create_entity_from_template(MeatSpace* meat_space,
                                              MeatSpaceEntityTemplateId template_id,
                                              i32 variation_number = -1);
+void draw_collision_volumes(MeatSpace* meat_space, MeatSpaceEntity* entity);
 void draw_entity_texture(MeatSpace* meat_space,
                          vec2 position, u32 color,
                          AssetType asset_type, AssetAttributes asset_attributes,

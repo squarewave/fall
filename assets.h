@@ -15,6 +15,7 @@ reflectable enum AssetType {
   AssetType_selection_line,
   AssetType_selection_circle,
   AssetType_tile,
+  AssetType_boulder_small,
   AssetType_boulder_large,
   AssetType_tree_medium,
   AssetType_tree_large,
@@ -26,9 +27,10 @@ i32 AssetType_variation_counts[] = {
   0, // AssetType_unspecified
   1, // AssetType_square
   1, // AssetType_crew
-  1, // AssetType_square
   1, // AssetType_selection_line
+  1, // AssetType_selection_circle
   1, // AssetType_tile
+  1, // AssetType_boulder_small
   1, // AssetType_boulder_large
   2, // AssetType_tree_medium
   1, // AssetType_tree_large
@@ -95,7 +97,7 @@ const u32 GRASS_BOTTOM_LEFT   = 0x08;
 
 reflectable struct AssetAttributes {
   i64 tracking_id;
-  i32 variation_number;
+  u32 variation_number;
   AssetDirection direction;
   AssetMoveState move_state;
   AssetClass asset_class;

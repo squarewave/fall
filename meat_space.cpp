@@ -39,6 +39,52 @@ MeatSpaceEntity* get_entity_by_id(MeatSpace* meat_space, i64 id) {
   return result;
 }
 
+bool next_collision_volume(MeatSpace* meat_space, MeatSpaceEntity* entity, CollisionVolume** volume) {
+  if (entity->collision_volumes == -1) {
+    *volume = NULL;
+    return false;
+  }
+  if (!*volume) {
+    *volume = meat_space->collision_volumes + entity->collision_volumes;
+    assert(entity->collision_volumes < meat_space->collision_volumes_count);
+    assert((*volume)->common.entity_id == entity->id);
+    return true;
+  } else {
+    *volume = *volume + 1;
+    if (*volume - meat_space->collision_volumes < meat_space->collision_volumes_count &&
+      (*volume)->common.entity_id == entity->id) {
+      return true;
+    } else {
+      *volume = NULL;
+      return false;
+    }
+  }
+}
+
+bool next_collision_volume(MeatSpaceEntityTemplateCollection* template_collection,
+                           MeatSpaceEntityTemplate* entity_template,
+                           CollisionVolume** volume) {
+  if (entity_template->collision_volumes == -1) {
+    *volume = NULL;
+    return false;
+  }
+  if (!*volume) {
+    *volume = template_collection->collision_volumes + entity_template->collision_volumes;
+    assert(entity_template->collision_volumes < template_collection->collision_volumes_count);
+    assert((*volume)->common.entity_id == entity_template->id);
+    return true;
+  } else {
+    *volume = *volume + 1;
+    if (*volume - template_collection->collision_volumes < template_collection->collision_volumes_count &&
+      (*volume)->common.entity_id == entity_template->id) {
+      return true;
+    } else {
+      *volume = NULL;
+      return false;
+    }
+  }
+}
+
 vec2 viewport_to_world_position(MeatSpace* meat_space, vec2 viewport_position) {
   f32 viewport_width = meat_space->camera.viewport_right - meat_space->camera.viewport_left;
   f32 viewport_height = meat_space->camera.viewport_top - meat_space->camera.viewport_bottom;
@@ -135,25 +181,11 @@ void refresh_collision_volume(MeatSpace* meat_space, i32 i, CollisionVolume volu
   }
 }
 
-CollisionVolume* get_collision_volumes(MeatSpace* meat_space, i32 entity_index, i32* count) {
-  auto entity = meat_space->entities + entity_index;
-
-  i32 index = entity->collision_volumes;
-  CollisionVolume * result = meat_space->collision_volumes + index;
-  while (index < meat_space->collision_volumes_count &&
-          meat_space->collision_volumes[index].common.entity_id == entity->id) {
-    index++;
-  }
-  *count = index - entity->collision_volumes;
-  return result;
-}
-
 void refresh_collision_volumes(MeatSpace* meat_space, i32 entity_index) {
   i32 count;
-  auto volumes = get_collision_volumes(meat_space, entity_index, &count);
-  for (i32 j = 0; j < count; j++) {
-    auto volume = volumes[j];
-    refresh_collision_volume(meat_space, entity_index, volume);
+  CollisionVolume* volume = NULL;
+  while (next_collision_volume(meat_space, meat_space->entities + entity_index, &volume)) {
+    refresh_collision_volume(meat_space, entity_index, *volume);
   }
 }
 
@@ -229,33 +261,32 @@ b32 is_cell_occupied(MeatSpace* meat_space, GridCell cell, i32 ignore_me, b32 ex
     auto entity = meat_space->entities + buffer[i];
 
     i32 volumes_count;
-    auto volumes = get_collision_volumes(meat_space, buffer[i], &volumes_count);
     auto top_right = cell_top_right(meat_space->grid, cell);
     auto bottom_left = cell_bottom_left(meat_space->grid, cell);
 
-    for (i32 j = 0; j < volumes_count; j++) {
-      auto volume = volumes[j];
+    CollisionVolume* volume = NULL;
+    while (next_collision_volume(meat_space, entity, &volume)) {
       vec2 volume_center = vec2{
-        volume.common.offset.x + entity->p.x,
-        volume.common.offset.y + entity->p.y,
+        volume->common.offset.x + entity->p.x,
+        volume->common.offset.y + entity->p.y,
       };
 
       if (is_in_rect(volume_center, rect2{ bottom_left, top_right })) {
         return true;
       }
 
-      switch (volume.type) {
+      switch (volume->type) {
       case CollisionVolume_Type_box: {
-        f32 left = volume.box.offset.x + entity->p.x - volume.box.dimensions.x / 2.0f;
-        f32 right = volume.box.offset.x + entity->p.x + volume.box.dimensions.x / 2.0f;
-        f32 bottom = volume.box.offset.y + entity->p.y - volume.box.dimensions.y / 2.0f;
-        f32 top = volume.box.offset.y + entity->p.y + volume.box.dimensions.y / 2.0f;
+        f32 left = volume->box.offset.x + entity->p.x - volume->box.dimensions.x / 2.0f;
+        f32 right = volume->box.offset.x + entity->p.x + volume->box.dimensions.x / 2.0f;
+        f32 bottom = volume->box.offset.y + entity->p.y - volume->box.dimensions.y / 2.0f;
+        f32 top = volume->box.offset.y + entity->p.y + volume->box.dimensions.y / 2.0f;
         if (top_right.x > left && bottom_left.x < right && top_right.y > bottom && bottom_left.y < top) {
           return true;
         }
       } break;
       case CollisionVolume_Type_circle: {
-        f32 radius_sq = volume.circle.radius * volume.circle.radius;
+        f32 radius_sq = volume->circle.radius * volume->circle.radius;
         if (magnitude_sq(volume_center - top_right) < radius_sq ||
             magnitude_sq(volume_center - bottom_left) < radius_sq ||
             magnitude_sq(volume_center - vec2{ top_right.x, bottom_left.y }) < radius_sq ||
@@ -338,10 +369,9 @@ b32 can_entity_fit_at_cell(MeatSpace* meat_space,
                            i32 entity_index,
                            GridCell cell,
                            b32 exclude_moving) {
-  i32 collision_volumes_count;
-  auto collision_volumes = get_collision_volumes(meat_space, entity_index, &collision_volumes_count);
-  for (i32 i = 0; i < collision_volumes_count; i++) {
-    if (!can_volume_fit_at_cell(meat_space, collision_volumes[i], cell, entity_index, exclude_moving)) {
+  CollisionVolume* volume = NULL;
+  while (next_collision_volume(meat_space, meat_space->entities + entity_index, &volume)) {
+    if (!can_volume_fit_at_cell(meat_space, *volume, cell, entity_index, exclude_moving)) {
       return false;
     }
   }
@@ -710,31 +740,36 @@ MeatSpaceEntity* create_entity_from_template(MeatSpace* meat_space,
   }
   result->asset_attributes.variation_number = variation_number;
   i32 initial_count = meat_space->collision_volumes_count;
-  if (t->collision_boxes != -1) {
-    i32 box = t->collision_boxes;
-    while (box < meat_space->template_collection.collision_volumes_count &&
-           meat_space->template_collection.collision_volumes[box].common.entity_id == t->id) {
+  if (t->collision_volumes != -1) {
+    CollisionVolume* t_volume = NULL;
+    i32 box = t->collision_volumes;
+    while (next_collision_volume(&meat_space->template_collection, t, &t_volume)) {
       auto volume = &meat_space->collision_volumes[meat_space->collision_volumes_count++];
-      *volume = meat_space->template_collection.collision_volumes[box];
+      *volume = *t_volume;
       volume->common.entity_id = result->id;
       box++;
     }
     result->collision_volumes = initial_count;
-  } else {
+  } else if (!has_flag(t->flags, ENTITY_FLAG_TRAVERSABLE)) {
     auto volume = &meat_space->collision_volumes[meat_space->collision_volumes_count++];
     volume->type = CollisionVolume_Type_box;
     volume->box.entity_id = result->id;
     volume->box.dimensions = vec2{ meat_space->grid.cell_width, meat_space->grid.cell_width };
     volume->box.offset = vec2{};
     result->collision_volumes = initial_count;
+  } else {
+    result->collision_volumes = -1;
   }
   result->target_center = t->target_center;
   result->firing_center = t->firing_center;
   result->z_bias = t->z_bias;
   result->z_bias += rnd_pcg_nextf(&meat_space->pcg) * 0.05f;
+  result->texture_anchor = t->texture_anchor;
 
   result->max_health = result->health = t->max_health;
   result->weapon = t->weapon;
+
+  result->template_id = t->id;
   return result;
 }
 
@@ -863,40 +898,35 @@ void draw_health(vec2 p, f32 health, f32 max_health) {
 }
 
 void draw_collision_volumes(MeatSpace* meat_space, MeatSpaceEntity* entity) {
-  if (entity->collision_volumes != -1) {
-    i32 index = entity->collision_volumes;
-    while (index < meat_space->collision_volumes_count &&
-      meat_space->collision_volumes[index].common.entity_id == entity->id) {
-      f32 z = entity->p.y + entity->z_bias - 0.1f;
-      u32 color = 0xffffffff;
-      auto volume = meat_space->collision_volumes[index];
-      switch (volume.type) {
-      case CollisionVolume_Type_box: {
-        auto box = volume.box;
+  CollisionVolume* volume = NULL;
+  while (next_collision_volume(meat_space, entity, &volume)) {
+    f32 z = entity->p.y + entity->z_bias - 0.1f;
+    u32 color = 0xffffffff;
+    switch (volume->type) {
+    case CollisionVolume_Type_box: {
+      auto box = volume->box;
 
-        f32 left = box.offset.x + entity->p.x - volume.box.dimensions.x / 2.0f;
-        f32 right = box.offset.x + entity->p.x + volume.box.dimensions.x / 2.0f;
-        f32 bottom = box.offset.y + entity->p.y - volume.box.dimensions.y / 2.0f;
-        f32 top = box.offset.y + entity->p.y + volume.box.dimensions.y / 2.0f;
+      f32 left = box.offset.x + entity->p.x - volume->box.dimensions.x / 2.0f;
+      f32 right = box.offset.x + entity->p.x + volume->box.dimensions.x / 2.0f;
+      f32 bottom = box.offset.y + entity->p.y - volume->box.dimensions.y / 2.0f;
+      f32 top = box.offset.y + entity->p.y + volume->box.dimensions.y / 2.0f;
 
-        push_quad_frame(g_render_commands,
-                        left, bottom, z, color,
-                        left, top, z, color,
-                        right, top, z, color,
-                        right, bottom, z, color);
-      } break;
-      case CollisionVolume_Type_circle: {
-        auto circle = volume.circle;
-        push_circle_frame(g_render_commands,
-                          circle.offset.x + entity->p.x,
-                          circle.offset.y + entity->p.y,
-                          z,
-                          circle.radius,
-                          color);
-      } break;
-      default: ;
-      }
-      index++;
+      push_quad_frame(g_render_commands,
+                      left, bottom, z, color,
+                      left, top, z, color,
+                      right, top, z, color,
+                      right, bottom, z, color);
+    } break;
+    case CollisionVolume_Type_circle: {
+      auto circle = volume->circle;
+      push_circle_frame(g_render_commands,
+                        circle.offset.x + entity->p.x,
+                        circle.offset.y + entity->p.y,
+                        z,
+                        circle.radius,
+                        color);
+    } break;
+    default: ;
     }
   }
 }
@@ -1146,7 +1176,7 @@ void meat_space_update_and_render(MeatSpace* meat_space) {
     }
 
     {
-      auto p = entity->p;
+      auto p = entity->p + entity->texture_anchor;
       auto color = 0xffffffff;
       if (entity->selection_group == SelectionGroup_enemy) {
         color = 0xffaaaaff;
