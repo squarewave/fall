@@ -107,6 +107,23 @@ reflectable struct AssetAttributes {
   AssetLivingState living_state;
 };
 
+reflectable struct AssetSpec {
+  reflect_member(cstring) char* filepath;
+  AssetType asset_type;
+  AssetAttributes asset_attributes;
+  b32 use_anchor;
+  i32 anchor_x;
+  i32 anchor_y;
+};
+
+reflectable enum DummyUnion_Type {
+  DummyUnion_Type_dummy_val
+};
+
+reflectable union DummyUnion {
+  i32 dummy_val;
+};
+
 reflectable struct TextureAsset {
   void* handle;
   f32 left;

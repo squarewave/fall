@@ -1,6 +1,9 @@
 #pragma once
 
-#include "generated_typeinfo.h"
+#ifndef TYPEINFO_FILE
+#define TYPEINFO_FILE "generated_typeinfo.h"
+#endif
+#include TYPEINFO_FILE
 
 inline TypeInfo get_type_info(TypeInfo_ID id) {
   if (id > TypeInfo_ID_end_primitives) {

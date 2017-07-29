@@ -39,7 +39,7 @@ void inspect_enum(int* value, MemberInfo member_info) {
   int item = 0;
   int item_count = 0;
   int index_offset = -1;
-  char** combo_strings = (char**)stretchy_buffer_init();
+  char** combo_strings = (char**)stretchy_buffer_init(&g_transient_state->allocator);
   for (i32 i = 0; i < ARRAY_LENGTH(TypeInfo_member_table); i++) {
     auto ti = TypeInfo_member_table[i];
     if (ti.member_kind == MemberKind_enum && ti.parent_type == member_info.member_type) {
@@ -49,7 +49,7 @@ void inspect_enum(int* value, MemberInfo member_info) {
       if (type_at_offset(value, int, 0) == ti.enum_value) {
         item = i - index_offset;
       }
-      stretchy_buffer_push(ti.member_name);
+      stretchy_buffer_push(&g_transient_state->allocator, ti.member_name);
       item_count++;
     }
   }
@@ -62,6 +62,7 @@ void inspect_enum(int* value, MemberInfo member_info) {
 void inspect_value(MemberInfo mi, void* value, size_t offset) {
   switch (mi.member_type) {
   case TypeInfo_ID_void: Text("%s: void", mi.member_name);  break;
+  case TypeInfo_ID_size_t:
   case TypeInfo_ID_u64: Text("%s: %llu", mi.member_name, type_at_offset(value, u64, offset)); break;
   case TypeInfo_ID_u32: Text("%s: %u", mi.member_name, type_at_offset(value, u32, offset)); break;
   case TypeInfo_ID_u16: Text("%s: %hu", mi.member_name, type_at_offset(value, u16, offset)); break;
@@ -137,6 +138,7 @@ size_t get_type_size(TypeInfo_ID type) {
   case TypeInfo_ID_f32: return 4;
   case TypeInfo_ID_f64: return 8;
   case TypeInfo_ID_char: return 1;
+  case TypeInfo_ID_size_t: return sizeof(size_t);
   default: {
     if (type > TypeInfo_ID_end_primitives) {
       int type_info_index = type - TypeInfo_ID_end_primitives - 1;
@@ -203,7 +205,7 @@ void inspect_struct_(TypeInfo_ID type_id, void* value, char* member_name, b32 co
 }
 
 void* debug_serialize_struct_(TypeInfo_ID type_id, void* value) {
-  stretchy_buffer_init();
+  stretchy_buffer_init(&g_transient_state->allocator);
   for (i32 i = 0; i < ARRAY_LENGTH(TypeInfo_member_table); i++) {
     auto ti = TypeInfo_member_table[i];
     if (ti.parent_type == type_id) {

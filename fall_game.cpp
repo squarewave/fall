@@ -1,3 +1,7 @@
+// TODO:
+
+#define TYPEINFO_FILE "generated_typeinfo.h"
+
 #include "xxhash.c"
 
 #include "game.cpp"

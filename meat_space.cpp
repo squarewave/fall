@@ -1134,9 +1134,9 @@ void meat_space_update_and_render(MeatSpace* meat_space) {
 
       if (!has_flag(entity->flags, ENTITY_FLAG_DEAD)) {
         if (entity->health <= 0.0f) {
-          set_flag(&entity->flags, ENTITY_FLAG_DEAD);
-          set_flag(&entity->flags, ENTITY_FLAG_TRAVERSABLE);
-          clear_flag(&entity->flags, ENTITY_FLAG_CHARACTER);
+          set_flag(entity->flags, ENTITY_FLAG_DEAD);
+          set_flag(entity->flags, ENTITY_FLAG_TRAVERSABLE);
+          clear_flag(entity->flags, ENTITY_FLAG_CHARACTER);
         } else {
           if (entity->weapon.type == MeatSpaceWeapon_Type_gun) {
             entity->weapon.gun.time_since_last_fired += dt;

@@ -39,6 +39,9 @@ GAME_UPDATE_AND_RENDER(game_update_and_render) {
   reset_transient_memory();
 
   if (!g_game_state->initialized) {
+    g_game_state->allocator.capacity = GAME_MEMORY_SIZE;
+    g_transient_state->allocator.capacity = TRANSIENT_MEMORY_SIZE;
+
     assets_init();
     g_game_state->perlin_scale = 45.0f;
 
@@ -72,169 +75,27 @@ GAME_UPDATE_AND_RENDER(game_update_and_render) {
     meat_space->grid = grid;
     meat_space->projectiles_free_stack[0] = -1;
     rnd_pcg_seed(&meat_space->pcg, 1u);
-
-    i32 template_count = 1024;
-    i32 collision_volumes_count = 1024;
-    meat_space->template_collection.templates = game_alloc_array(MeatSpaceEntityTemplate, template_count);
-    meat_space->template_collection.templates_count = 0;
-    meat_space->template_collection.collision_volumes = game_alloc_array(CollisionVolume, collision_volumes_count);
-    meat_space->template_collection.collision_volumes_count = 0;
-
-    CollisionVolume volume = {};
-
-    auto t = collection_reserve(meat_space->template_collection.templates);
-    memset(t, 0, sizeof(*t));
-    t->id = MeatSpaceEntityTemplateId_tile;
-    t->flags |= ENTITY_FLAG_TRAVERSABLE;
-    t->asset_type = AssetType_tile;
     f32 cell_width = meat_space->grid.cell_width;
-    t->z_bias = 2.0f * cell_width;
-    t->collision_volumes = -1;
 
-    t = collection_reserve(meat_space->template_collection.templates);
-    memset(t, 0, sizeof(*t));
-    t->id = MeatSpaceEntityTemplateId_crew_gun;
-    t->flags |= ENTITY_FLAG_CHARACTER;
-    t->asset_type = AssetType_crew;
-    t->selection_bounds = rect2{ -4.0f, 2.0f, 4.0f, 26.0f };
-    t->firing_center = vec2{ 0.0f, 16.0f };
-    t->target_center = vec2{ 0.0f, 16.0f };
-    t->collision_volumes = -1;
-    t->max_health = 8.0f;
-    t->weapon.type = MeatSpaceWeapon_Type_gun;
-    t->weapon.gun.cooldown = 1.5f;
-    t->weapon.gun.damage = 1.0f;
-    t->weapon.gun.range = 8.0f * meat_space->grid.cell_width;
-    t->weapon.gun.time_since_last_fired = 0.0f;
+    auto f = g_platform.DEBUG_read_entire_file("../templates");
+    size_t templates_size = f.content_size;
+    void* templates_serialized = f.contents;
 
-    t = collection_reserve(meat_space->template_collection.templates);
-    memset(t, 0, sizeof(*t));
-    t->id = MeatSpaceEntityTemplateId_crew_grenade_launcher;
-    t->flags |= ENTITY_FLAG_CHARACTER;
-    t->asset_type = AssetType_crew;
-    t->selection_bounds = rect2{ -4.0f, 2.0f, 4.0f, 26.0f };
-    t->firing_center = vec2{ 0.0f, 16.0f };
-    t->target_center = vec2{ 0.0f, 16.0f };
-    t->collision_volumes = -1;
-    t->max_health = 8.0f;
-    t->weapon.type = MeatSpaceWeapon_Type_grenade_launcher;
-    t->weapon.grenade_launcher.cooldown = 4.0f;
-    t->weapon.grenade_launcher.damage = 3.0f;
-    t->weapon.grenade_launcher.range = 7.0f * meat_space->grid.cell_width;
-    t->weapon.grenade_launcher.time_since_last_fired = 0.0f;
-    t->weapon.grenade_launcher.radius = 2.0f;
+    meat_space->template_collection.templates = (MeatSpaceEntityTemplate*)
+      deserialize_struct_array(&g_game_state->allocator, TypeInfo_ID_MeatSpaceEntityTemplate,
+                               templates_serialized, templates_size,
+                               &meat_space->template_collection.templates_count);
+    g_platform.DEBUG_free_file_memory(f.contents);
 
-    t = collection_reserve(meat_space->template_collection.templates);
-    memset(t, 0, sizeof(*t));
-    t->id = MeatSpaceEntityTemplateId_crew_healing_ray;
-    t->flags |= ENTITY_FLAG_CHARACTER;
-    t->asset_type = AssetType_crew;
-    t->selection_bounds = rect2{ -4.0f, 2.0f, 4.0f, 26.0f };
-    t->firing_center = vec2{ 0.0f, 16.0f };
-    t->target_center = vec2{ 0.0f, 16.0f };
-    t->collision_volumes = -1;
-    t->max_health = 8.0f;
-    t->weapon.type = MeatSpaceWeapon_Type_healing_ray;
-    t->weapon.grenade_launcher.cooldown = 4.0f;
-    t->weapon.grenade_launcher.damage = 1.0f;
-    t->weapon.grenade_launcher.range = 1.5f * meat_space->grid.cell_width;
-    t->weapon.grenade_launcher.time_since_last_fired = 0.0f;
+    f = g_platform.DEBUG_read_entire_file("../collision_volumes");
+    size_t collision_volumes_size = f.content_size;
+    void* collision_volumes_serialized = f.contents;
 
-    t = collection_reserve(meat_space->template_collection.templates);
-    memset(t, 0, sizeof(*t));
-    t->id = MeatSpaceEntityTemplateId_crew_gun;
-    t->flags |= ENTITY_FLAG_CHARACTER;
-    t->asset_type = AssetType_crew;
-    t->selection_bounds = rect2{ -4.0f, 2.0f, 4.0f, 26.0f };
-    t->firing_center = vec2{ 0.0f, 16.0f };
-    t->target_center = vec2{ 0.0f, 16.0f };
-    t->collision_volumes = -1;
-    t->max_health = 8.0f;
-    t->weapon.type = MeatSpaceWeapon_Type_gun;
-    t->weapon.gun.cooldown = 1.5f;
-    t->weapon.gun.damage = 1.0f;
-    t->weapon.gun.range = 8.0f * meat_space->grid.cell_width;
-    t->weapon.gun.time_since_last_fired = 0.0f;
-
-    t = collection_reserve(meat_space->template_collection.templates);
-    memset(t, 0, sizeof(*t));
-    t->id = MeatSpaceEntityTemplateId_boulder_small;
-    t->asset_type = AssetType_boulder_small;
-    t->z_bias = -3.12f * cell_width;
-    t->collision_volumes = meat_space->template_collection.collision_volumes_count;
-    volume.box.type = CollisionVolume_Type_box;
-    volume.box.entity_id = t->id;
-    volume.box.offset = vec2{};
-    volume.box.dimensions = vec2{ 2.0f * grid.cell_width, 2.0f * grid.cell_width };
-    collection_add(meat_space->template_collection.collision_volumes, volume);
-
-    t = collection_reserve(meat_space->template_collection.templates);
-    memset(t, 0, sizeof(*t));
-    t->id = MeatSpaceEntityTemplateId_boulder_large;
-    t->asset_type = AssetType_boulder_large;
-    t->z_bias = -3.12f * cell_width;
-    t->collision_volumes = meat_space->template_collection.collision_volumes_count;
-    volume.box.type = CollisionVolume_Type_box;
-    volume.box.entity_id = t->id;
-    volume.box.offset = vec2{ -2.0f * grid.cell_width, -2.0f * grid.cell_width };
-    volume.box.dimensions = vec2{ 4.0f * grid.cell_width , 3.0f * grid.cell_width };
-    collection_add(meat_space->template_collection.collision_volumes, volume);
-    volume.box.offset = vec2{ 2.0f * grid.cell_width, -1.0f * grid.cell_width };
-    volume.box.dimensions = vec2{ 2.0f * grid.cell_width, 2.0f * grid.cell_width };
-    collection_add(meat_space->template_collection.collision_volumes, volume);
-    volume.circle.type = CollisionVolume_Type_circle;
-    volume.circle.offset = vec2{ 0.0f * grid.cell_width, 2.0f * grid.cell_width };
-    volume.circle.radius = 4.6f * grid.cell_width;
-    collection_add(meat_space->template_collection.collision_volumes, volume);
-
-    t = collection_reserve(meat_space->template_collection.templates);
-    memset(t, 0, sizeof(*t));
-    t->id = MeatSpaceEntityTemplateId_tree_medium;
-    t->asset_type = AssetType_tree_medium;
-    t->z_bias = -3.13f * cell_width;
-    t->collision_volumes = meat_space->template_collection.collision_volumes_count;
-    volume.box.type = CollisionVolume_Type_box;
-    volume.box.entity_id = t->id;
-    volume.box.offset = vec2{ -2.0f * grid.cell_width, -2.0f * grid.cell_width };
-    volume.box.dimensions = vec2{ 4.0f * grid.cell_width , 3.0f * grid.cell_width };
-    collection_add(meat_space->template_collection.collision_volumes, volume);
-    volume.box.offset = vec2{ 2.0f * grid.cell_width, -1.0f * grid.cell_width };
-    volume.box.dimensions = vec2{ 2.0f * grid.cell_width, 2.0f * grid.cell_width };
-    collection_add(meat_space->template_collection.collision_volumes, volume);
-
-    t = collection_reserve(meat_space->template_collection.templates);
-    memset(t, 0, sizeof(*t));
-    t->id = MeatSpaceEntityTemplateId_tree_large;
-    t->asset_type = AssetType_tree_large;
-    t->z_bias = -3.13f * cell_width;
-    t->collision_volumes = meat_space->template_collection.collision_volumes_count;
-    volume.box.type = CollisionVolume_Type_box;
-    volume.box.entity_id = t->id;
-    volume.box.offset = vec2{ -2.0f * grid.cell_width, -2.0f * grid.cell_width };
-    volume.box.dimensions = vec2{ 4.0f * grid.cell_width , 3.0f * grid.cell_width };
-    collection_add(meat_space->template_collection.collision_volumes, volume);
-    volume.box.offset = vec2{ 2.0f * grid.cell_width, -1.0f * grid.cell_width };
-    volume.box.dimensions = vec2{ 2.0f * grid.cell_width, 2.0f * grid.cell_width };
-    collection_add(meat_space->template_collection.collision_volumes, volume);
-
-//    size_t size;
-//    void* serialized = serialize_struct_array(TypeInfo_ID_MeatSpaceEntityTemplate,
-//                                              meat_space->template_collection.templates,
-//                                              meat_space->template_collection.templates_count,
-//                                              &size);
-//    g_platform.DEBUG_write_entire_file("tmp_templates", size, serialized);
-
-    auto f = g_platform.DEBUG_read_entire_file("tmp_templates");
-    size_t size = f.content_size;
-    void* serialized = f.contents;
-
-    MeatSpaceEntityTemplate b[1024] = {};
-    i32 out_count;
-    deserialize_struct_array(TypeInfo_ID_MeatSpaceEntityTemplate, serialized, size, b, sizeof(b), &out_count);
-
-    for (i32 i = 0; i < out_count; i++) {
-      assert(!memcmp(b + i, meat_space->template_collection.templates + i, sizeof(MeatSpaceEntityTemplate)));
-    }
+    meat_space->template_collection.collision_volumes = (CollisionVolume*)
+      deserialize_struct_array(&g_game_state->allocator, TypeInfo_ID_MeatSpaceEntityTemplate,
+                               collision_volumes_serialized, collision_volumes_size,
+                               &meat_space->template_collection.collision_volumes_count);
+    g_platform.DEBUG_free_file_memory(f.contents);
 
     meat_space->camera.position = vec2{ 0.0f, 0.0f };
     meat_space->camera.scale = vec2{ 1920.0f / PX_PER_PIXEL, 1080.0f / PX_PER_PIXEL };

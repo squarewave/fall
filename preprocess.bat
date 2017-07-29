@@ -2,8 +2,8 @@
 
 call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
 
-set CommonCompilerFlags=-Zi -O2
-set CommonLinkerFlags= -incremental:no -opt:ref user32.lib gdi32.lib winmm.lib
+set CommonCompilerFlags=-Zi -Od
+set CommonLinkerFlags=-PDB:preprocessor.pdb -incremental:no -opt:ref user32.lib gdi32.lib winmm.lib
 
 IF NOT EXIST build mkdir build
 pushd build
@@ -16,7 +16,9 @@ if %errorlevel% neq 0 goto :error
 
 popd
 
-"build\preprocessor.exe" > "generated_typeinfo.h"
+build\preprocessor.exe platform.h editor.h^
+  meat_space.h assets.h geometry.h game.h grid.h asset_manager.h^
+  memory.h > "generated_typeinfo.h"
 
 goto :EOF
 

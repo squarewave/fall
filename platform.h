@@ -8,6 +8,7 @@
 #endif
 
 #define reflectable
+#define reflect_member(options)
 #define ignore
 
 typedef uint64_t u64;
@@ -110,17 +111,9 @@ inline b32 was_released(ButtonInput button) {
   return (!button.ended_down) && button.transition_count;
 }
 
-inline b32 has_flag(u32 value, u32 flag) {
-  return value & flag;
-}
-
-inline void set_flag(u32* value, u32 flag) {
-  *value |= flag;
-}
-
-inline void clear_flag(u32* value, u32 flag) {
-  *value &= ~flag;
-}
+#define has_flag(value, flag) ((value) & (flag))
+#define set_flag(value, flag) ((value) |= (flag))
+#define clear_flag(value, flag) ((value) &= ~(flag))
 
 struct PlatformInput {
   union {

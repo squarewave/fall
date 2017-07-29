@@ -6,141 +6,92 @@
 #include <stdarg.h>
 
 #include "platform.h"
-#include "game.h"
 
 #define MEMORY_SENTRY 0xDEADBEEF
 
-inline size_t game_memory_used() {
-  char* base = (char*)(g_game_state + 1);
-  i64* tip = (i64*)base;
-  char* result = *tip + sizeof(*tip) + base;
-  return (size_t)result - (size_t)g_game_state;
+reflectable struct Allocator {
+  size_t capacity;
+  size_t high_water;
+  size_t used;
+};
+
+#define allocator_alloc(a, type) (type*)allocator_alloc_(a, sizeof(type))
+#define allocator_alloc_array(a, type, count) (type*)allocator_alloc_(a, sizeof(type) * count)
+
+inline size_t allocator_used(Allocator a) {
+  return a.used;
 }
 
-#define game_alloc(type) (type*)game_alloc_(sizeof(type))
-#define game_alloc_array(type, count) (type*)game_alloc_(sizeof(type) * (count))
-inline void* game_alloc_(size_t size) {
-  if (!size) {
+inline void* allocator_alloc_(Allocator* a, size_t size, b32 allow_zero_size = false) {
+  if (!size && !allow_zero_size) {
     return NULL;
   }
-  char* base = (char*)(g_game_state + 1);
-  i64* tip = (i64*)base;
-
-  char* result = *tip + sizeof(*tip) + base;
-  assert((size_t)result - (size_t)g_game_state < GAME_MEMORY_SIZE);
-  *tip += size;
-
-#if FALL_INTERNAL
-  *(u32*)(result + size) = MEMORY_SENTRY;
-  assert((i64)result - (i64)base == sizeof(*tip) || *(u32*)(result - sizeof(u32)) == MEMORY_SENTRY);
-  *tip += sizeof(u32);
-#endif
-
-  return result;
-}
-
-inline size_t transient_memory_used() {
-  char* base = (char*)(g_transient_state + 1);
-  i64* tip = (i64*)base;
-  char* result = *tip + sizeof(*tip) + base;
-  return (size_t)result - (size_t)g_transient_state;
-}
-
-
-#define transient_alloc(type) (type*)transient_alloc_(sizeof(type))
-#define transient_alloc_array(type, count) (type*)transient_alloc_(sizeof(type) * (count))
-#define transient_realloc_array(base, old_count, new_count) (decltype(base))transient_realloc_((base), sizeof(*(base)) * (old_count), sizeof(*(base)) * (new_count))
-inline void* transient_alloc_(size_t size) {
-  char* base = (char*)(g_transient_state + 1);
-  i64* tip = (i64*)base;
-
-  char* result = *tip + sizeof(*tip) + base;
-  assert((size_t)result - (size_t)g_transient_state < TRANSIENT_MEMORY_SIZE);
-  *tip += size;
-
-#if FALL_INTERNAL
-  *(u32*)(result + size) = MEMORY_SENTRY;
-  assert((i64)result - (i64)base == sizeof(*tip) || *(u32*)(result - sizeof(u32)) == MEMORY_SENTRY);
-  *tip += sizeof(u32);
-#endif
-
-  return result;
-}
-
-
-inline void* transient_realloc_(void* base, size_t old_size, size_t new_size) {
-  void* result;
-#if FALL_INTERNAL
-  if ((char*)base + old_size + sizeof(u32) == (char*)(g_transient_state + 1)) {
-    assert(new_size - old_size >= sizeof(u32));
-    transient_alloc_(new_size - old_size - sizeof(u32));
-#else
-  if ((char*)base + old_size == (char*)(g_transient_state + 1)) {
-    transient_alloc_(new_size - old_size);
-#endif
-    result = base;
-  } else {
-    // discard the old memory - it will be cleaned up next frame
-    auto new_base = transient_alloc_(new_size);
-    memcpy(new_base, base, old_size);
-    result = new_base;
+  if (a->used + size > a->capacity) {
+    assert(false);
+    return NULL;
   }
+  char* base = (char*)(a + 1);
+
+  char* result = base + a->used;
+  a->used += size;
+
+#if FALL_INTERNAL
+  *(u32*)(result + size) = MEMORY_SENTRY;
+  assert(a->used == size || *(u32*)(result - sizeof(u32)) == MEMORY_SENTRY);
+  a->used += sizeof(u32);
+#endif
+
+  if (a->high_water < a->used) {
+    a->high_water = a->used;
+  }
+
   return result;
 }
 
-#define stretchy_buffer_init() (transient_alloc_(0))
-#define stretchy_buffer_push(val) stretchy_buffer_push_(sizeof(val), &(val))
-inline void* stretchy_buffer_grow_(size_t size) {
-  char* base = (char*)(g_transient_state + 1);
-  i64* tip = (i64*)base;
+inline void reset_allocator(Allocator* a) {
+  a->used = 0;
+}
+
+#define stretchy_buffer_init(a) (allocator_alloc_(a, 0, true))
+#define stretchy_buffer_push(a, val) stretchy_buffer_push_(a, sizeof(val), &(val))
+inline void* stretchy_buffer_grow_(Allocator* a, size_t size) {
+  char* base = (char*)(a + 1);
+
+  if (a->used + size > a->capacity) {
+    assert(false);
+    return NULL;
+  }
 
 #if FALL_INTERNAL
-  char* result = *tip + sizeof(*tip) + base - sizeof(u32);
+  char* result = a->used + base - sizeof(u32);
   if  (size) {
-    assert((i64)result - (i64)base < TRANSIENT_MEMORY_SIZE);
     *(u32*)(result + size) = MEMORY_SENTRY;
     assert(*(u32*)result == MEMORY_SENTRY);
-    *tip += size;
+    a->used += size;
   }
 #else
-  char* result = *tip + sizeof(*tip) + base;
-  assert((i64)result - (i64)base < TRANSIENT_MEMORY_SIZE);
-  *tip += size;
+  char* result = a->used + base;
+  a->used += size;
 #endif
+
+  if (a->high_water < a->used) {
+    a->high_water = a->used;
+  }
 
   return result;
 }
 
-inline void* stretchy_buffer_tip() {
-  return stretchy_buffer_grow_(0);
+inline void* stretchy_buffer_tip(Allocator* a) {
+  return stretchy_buffer_grow_(a, 0);
 }
 
-inline void* stretchy_buffer_push_(size_t size, void* val) {
-  auto result = stretchy_buffer_grow_(size);
+inline void* stretchy_buffer_push_(Allocator* a, size_t size, void* val) {
+  auto result = stretchy_buffer_grow_(a, size);
   memcpy(result, val, size);
   return result;
 }
 
-inline void reset_transient_memory() {
-  char* base = (char*)(g_transient_state + 1);
-  i64* tip = (i64*)base;
-  *tip = 0;
-}
-
-char* tprintf(const char* fmt, ...) {
-  va_list args;
-  va_start(args, fmt);
-
-  int size = vsnprintf(NULL, 0, "%s", args);
-  char * a = transient_alloc_array(char, size + 1);
-  vsnprintf(a, size + 1, "%s", args);
-
-  va_end(args);
-
-  return a;
-}
-
-char* sbprintf(const char* fmt, ...) {
+char* sbprintf(Allocator* a, const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
 
@@ -148,12 +99,12 @@ char* sbprintf(const char* fmt, ...) {
   size_t aligned_size = size + 8;
   aligned_size &= ~0b0111;
   aligned_size |= 0b1000;
-  char * a = (char*)stretchy_buffer_grow_(aligned_size);
-  vsnprintf(a, aligned_size, "%s", args);
+  char * result = (char*)stretchy_buffer_grow_(a, aligned_size);
+  vsnprintf(result, aligned_size, "%s", args);
 
   va_end(args);
 
-  return a;
+  return result;
 }
 
 #endif /* end of include guard: MEMORY_H__ */

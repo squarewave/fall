@@ -1,3 +1,5 @@
+#define TYPEINFO_FILE "packager_typeinfo.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -12,6 +14,8 @@
 #include "stb/stb_rect_pack.h"
 
 #include "assets.h"
+#include "serialize.h"
+#include "serialize.cpp"
 
 typedef uint64_t u64;
 typedef uint32_t u32;
@@ -233,6 +237,9 @@ void add_png(AssetType asset_type, AssetAttributes attrs, char* filename, i32 an
 }
 
 int main(int argc, char const *argv[]) {
+  const size_t allocator_capacity = 1024 * 1024;
+  Allocator* a = (Allocator*)malloc(allocator_capacity);
+  a->capacity = allocator_capacity;
   archive_mem = (char*)malloc(1024 * 1024 * 1024);
   assert(archive_mem);
   archive_mem_head = archive_mem;
@@ -240,133 +247,25 @@ int main(int argc, char const *argv[]) {
   assert(temp_atlas_data);
   AssetAttributes attrs = {};
 
+  auto file_result = read_entire_file("asset_specs");
+
+  int spec_count;
+  AssetSpec* specs_ptr = (AssetSpec*)
+    deserialize_struct_array(a, TypeInfo_ID_AssetSpec,
+                             file_result.contents,
+                             file_result.content_size,
+                             &spec_count);
+
   begin_archive((char*)"build/assets/test_images.pak");
 
-  ZERO(attrs);
-  add_png(AssetType_square, attrs, (char*)"assets/white_pixel.png", 6, 2);
-
-  ZERO(attrs);
-  attrs.asset_class = AssetClass_science;
-  attrs.color = AssetColor_dark;
-  attrs.direction = AssetDirection_forward;
-  attrs.move_state = AssetMoveState_standing;
-  add_png(AssetType_crew, attrs, (char*)"assets/crew_gun_01.png", 6, 2);
-
-  ZERO(attrs);
-  attrs.asset_class = AssetClass_science;
-  attrs.color = AssetColor_dark;
-  attrs.direction = AssetDirection_forward;
-  attrs.move_state = AssetMoveState_standing;
-  attrs.living_state = AssetLivingState_dead;
-  add_png(AssetType_crew, attrs, (char*)"assets/crew_science_dark_forward_standing_dead.png", 6, 2);
-
-  ZERO(attrs);
-  attrs.direction = AssetDirection_horizontal;
-  add_png(AssetType_selection_line, attrs, (char*)"assets/selection_line_horizontal.png");
-
-  ZERO(attrs);
-  attrs.direction = AssetDirection_vertical;
-  add_png(AssetType_selection_line, attrs, (char*)"assets/selection_line_vertical.png");
-
-  ZERO(attrs);
-  add_png(AssetType_selection_circle, attrs, (char*)"assets/selection_circle.png", -256, 7);
-
-  ZERO(attrs);
-  add_png(AssetType_boulder_large, attrs, (char*)"assets/boulder_medium_01.png");
-
-  ZERO(attrs);
-  add_png(AssetType_boulder_small, attrs, (char*)"assets/boulder_small_01.png");
-
-  ZERO(attrs);
-  add_png(AssetType_tree_medium, attrs, (char*)"assets/tree_medium_01.png");
-
-  ZERO(attrs);
-  attrs.variation_number = 1;
-  add_png(AssetType_tree_medium, attrs, (char*)"assets/tree_medium_02.png");
-
-  ZERO(attrs);
-  add_png(AssetType_tree_large, attrs, (char*)"assets/tree_large_01.png");
-
-  ZERO(attrs);
-  attrs.bitflags = 0;
-  add_png(AssetType_tile, attrs, (char*)"assets/tile_dirt_dirt_dirt_dirt_01.png");
-
-  ZERO(attrs);
-  attrs.bitflags |= GRASS_BOTTOM_LEFT;
-  add_png(AssetType_tile, attrs, (char*)"assets/tile_dirt_dirt_dirt_grass_01.png");
-
-  ZERO(attrs);
-  attrs.bitflags |= GRASS_BOTTOM_RIGHT;
-  add_png(AssetType_tile, attrs, (char*)"assets/tile_dirt_dirt_grass_dirt_01.png");
-
-  ZERO(attrs);
-  attrs.bitflags |= GRASS_BOTTOM_RIGHT;
-  attrs.bitflags |= GRASS_BOTTOM_LEFT;
-  add_png(AssetType_tile, attrs, (char*)"assets/tile_dirt_dirt_grass_grass_01.png");
-
-  ZERO(attrs);
-  attrs.bitflags |= GRASS_TOP_RIGHT;
-  add_png(AssetType_tile, attrs, (char*)"assets/tile_dirt_grass_dirt_dirt_01.png");
-
-  ZERO(attrs);
-  attrs.bitflags |= GRASS_TOP_RIGHT;
-  attrs.bitflags |= GRASS_BOTTOM_LEFT;
-  add_png(AssetType_tile, attrs, (char*)"assets/tile_dirt_grass_dirt_grass_01.png");
-
-  ZERO(attrs);
-  attrs.bitflags |= GRASS_TOP_RIGHT;
-  attrs.bitflags |= GRASS_BOTTOM_RIGHT;
-  add_png(AssetType_tile, attrs, (char*)"assets/tile_dirt_grass_grass_dirt_01.png");
-
-  ZERO(attrs);
-  attrs.bitflags |= GRASS_TOP_RIGHT;
-  attrs.bitflags |= GRASS_BOTTOM_LEFT;
-  attrs.bitflags |= GRASS_BOTTOM_RIGHT;
-  add_png(AssetType_tile, attrs, (char*)"assets/tile_dirt_grass_grass_grass_01.png");
-
-  ZERO(attrs);
-  attrs.bitflags |= GRASS_TOP_LEFT;
-  add_png(AssetType_tile, attrs, (char*)"assets/tile_grass_dirt_dirt_dirt_01.png");
-
-  ZERO(attrs);
-  attrs.bitflags |= GRASS_TOP_LEFT;
-  attrs.bitflags |= GRASS_BOTTOM_LEFT;
-  add_png(AssetType_tile, attrs, (char*)"assets/tile_grass_dirt_dirt_grass_01.png");
-
-  ZERO(attrs);
-  attrs.bitflags |= GRASS_TOP_LEFT;
-  attrs.bitflags |= GRASS_BOTTOM_RIGHT;
-  add_png(AssetType_tile, attrs, (char*)"assets/tile_grass_dirt_grass_dirt_01.png");
-
-  ZERO(attrs);
-  attrs.bitflags |= GRASS_TOP_LEFT;
-  attrs.bitflags |= GRASS_BOTTOM_LEFT;
-  attrs.bitflags |= GRASS_BOTTOM_RIGHT;
-  add_png(AssetType_tile, attrs, (char*)"assets/tile_grass_dirt_grass_grass_01.png");
-
-  ZERO(attrs);
-  attrs.bitflags |= GRASS_TOP_LEFT;
-  attrs.bitflags |= GRASS_TOP_RIGHT;
-  add_png(AssetType_tile, attrs, (char*)"assets/tile_grass_grass_dirt_dirt_01.png");
-
-  ZERO(attrs);
-  attrs.bitflags |= GRASS_TOP_LEFT;
-  attrs.bitflags |= GRASS_TOP_RIGHT;
-  attrs.bitflags |= GRASS_BOTTOM_LEFT;
-  add_png(AssetType_tile, attrs, (char*)"assets/tile_grass_grass_dirt_grass_01.png");
-
-  ZERO(attrs);
-  attrs.bitflags |= GRASS_TOP_LEFT;
-  attrs.bitflags |= GRASS_TOP_RIGHT;
-  attrs.bitflags |= GRASS_BOTTOM_RIGHT;
-  add_png(AssetType_tile, attrs, (char*)"assets/tile_grass_grass_grass_dirt_01.png");
-
-  ZERO(attrs);
-  attrs.bitflags |= GRASS_TOP_LEFT;
-  attrs.bitflags |= GRASS_TOP_RIGHT;
-  attrs.bitflags |= GRASS_BOTTOM_RIGHT;
-  attrs.bitflags |= GRASS_BOTTOM_LEFT;
-  add_png(AssetType_tile, attrs, (char*)"assets/tile_grass_grass_grass_grass_01.png");
+  for (i32 i = 0; i < spec_count; i++) {
+    auto spec = specs_ptr[i];
+    if (spec.use_anchor) {
+      add_png(spec.asset_type, spec.asset_attributes, spec.filepath, spec.anchor_x, spec.anchor_y);
+    } else {
+      add_png(spec.asset_type, spec.asset_attributes, spec.filepath);
+    }
+  }
 
   end_archive();
   return 0;
