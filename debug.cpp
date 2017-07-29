@@ -169,13 +169,20 @@ void inspect_member(MemberInfo mi, void* value) {
     }
   } else if (mi.member_kind == MemberKind_pointer) {
     void* ptr = type_at_offset(value, void*, mi.offset);
-    if (CollapsingHeader(tprintf("%s (pointer)", mi.member_name))) {
+
+    if (has_flag(mi.flags, TYPEINFO_MEMBER_FLAG_CSTRING)) {
       if (ptr) {
-        inspect_struct_(mi.member_type, ptr, mi.member_name, false);
-      } else {
-        Indent();
-        Text("NULL");
-        Unindent();
+        InputText(mi.member_name, (char*)ptr, EDITABLE_STRING_BUFFER_LENGTH);
+      }
+    } else {
+      if (CollapsingHeader(tprintf("%s (pointer)", mi.member_name))) {
+        if (ptr) {
+          inspect_struct_(mi.member_type, ptr, mi.member_name, false);
+        } else {
+          Indent();
+          Text("NULL");
+          Unindent();
+        }
       }
     }
   } else {

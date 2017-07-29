@@ -25,7 +25,6 @@
 #define RND_IMPLEMENTATION
 #include "rnd.h"
 
-
 #include "imgui_extensions.cpp"
 #include "imgui/imgui.cpp"
 #include "imgui/imgui_draw.cpp"

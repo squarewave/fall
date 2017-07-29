@@ -97,6 +97,16 @@ GAME_UPDATE_AND_RENDER(game_update_and_render) {
                                &meat_space->template_collection.collision_volumes_count);
     g_platform.DEBUG_free_file_memory(f.contents);
 
+    f = g_platform.DEBUG_read_entire_file("../asset_specs");
+    AssetSpec* specs_ptr = (AssetSpec*)
+      deserialize_struct_array(&g_game_state->allocator, TypeInfo_ID_AssetSpec,
+                               f.contents,
+                               f.content_size,
+                               &g_game_state->asset_specs_count,
+                               EDITABLE_STRING_BUFFER_LENGTH);
+    g_platform.DEBUG_free_file_memory(f.contents);
+    g_game_state->asset_specs = specs_ptr;
+
     meat_space->camera.position = vec2{ 0.0f, 0.0f };
     meat_space->camera.scale = vec2{ 1920.0f / PX_PER_PIXEL, 1080.0f / PX_PER_PIXEL };
     meat_space->camera.viewport_left = 0.0f;

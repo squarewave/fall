@@ -14,6 +14,7 @@ struct SerializedMemberInfo {
 };
 
 struct StringMemberMetadata {
+  i32 member_index;
   size_t offset;
 };
 
@@ -30,7 +31,9 @@ void push_members(Allocator* a, TypeInfo ti, i32* member_count,
       out_member.offset = member->offset;
       out_member.member_name_ptr_do_not_use = member->member_name;
       stretchy_buffer_push(a, out_member);
-      string_members[(*string_members_count)++].offset = member->offset;
+      auto string_member = &string_members[(*string_members_count)++];
+      string_member->offset = member->offset;
+      string_member->member_index = *member_count - 1;
     } else {
       assert(member->member_kind != MemberKind_pointer);
       SerializedMemberInfo out_member = {};
@@ -72,15 +75,16 @@ void* serialize_struct_array(Allocator* a, TypeInfo_ID type_id, void* data, i32 
   }
   *data_start = (size_t)stretchy_buffer_tip(a) - (size_t)result;
 
+  void* out_items_start = stretchy_buffer_tip(a);
   void* last = NULL;
   for (i32 i = 0; i < count; i++) {
     last = stretchy_buffer_push_(a, ti.size, (char*)data + ti.size * i);
   }
 
   for (i32 i = 0; i < string_members_count; i++) {
-    set_flag(member_start[i].flags, MEMBER_INFO_FLAG_CSTRING);
+    set_flag(member_start[string_members[i].member_index].flags, MEMBER_INFO_FLAG_CSTRING);
     for (i32 j = 0; j < count; j++) {
-      char* item = (char*)data + ti.size * j;
+      char* item = (char*)out_items_start + ti.size * j;
       char** str = (char**)(item + string_members[i].offset);
       char* new_loc = sbprintf(a, "%s", *str);
       *str = (char*)(((size_t)new_loc) - (size_t)member_start);
@@ -119,10 +123,14 @@ b32 push_offset_mappings_for_member(Allocator* a, i32 in_member_count, Serialize
                                       in_base_offset + in_member.offset,
                                       out_base_offset + member->offset);
     } else {
+      size_t size = member_type.size;
+      if (member->member_kind == MemberKind_pointer) {
+        size = sizeof(void*);
+      }
       auto mapping = OffsetMapping{
         in_member.offset + in_base_offset,
         member->offset + out_base_offset,
-        member_type.size,
+        size,
         member->flags,
       };
       stretchy_buffer_push(a, mapping);
@@ -170,7 +178,9 @@ void push_offset_mappings_for_struct(Allocator* a, TypeInfo_ID type_id, i32 in_m
   }
 }
 
-void* deserialize_struct_array(Allocator* a, TypeInfo_ID type_id, void* data, size_t data_size, i32* out_count) {
+void* deserialize_struct_array(Allocator* a, TypeInfo_ID type_id, void* data,
+                               size_t data_size, i32* out_count,
+                               i32 string_buffer_length) {
   i32* in_member_count = (i32*)data;
   i32* in_value_count = (i32*)(in_member_count + 1);
   size_t* in_struct_size = (size_t*)(in_value_count + 1);
@@ -203,9 +213,13 @@ void* deserialize_struct_array(Allocator* a, TypeInfo_ID type_id, void* data, si
       auto map = offset_map[j];
       if (has_flag(map.flags, MEMBER_INFO_FLAG_CSTRING)) {
         char** as_ptr = (char**)(out_base + map.out_offset);
-        size_t as_size_t = (size_t)as_ptr;
+        size_t as_size_t = (size_t)*as_ptr;
         char* to_copy = ((char*)in_members) + as_size_t;
-        *as_ptr = sbprintf(a, "%s", to_copy);
+        if (string_buffer_length == -1) {
+          *as_ptr = sbprintf(a, "%s", to_copy);
+        } else {
+          *as_ptr = sbnprintf(a, string_buffer_length, "%s", to_copy);
+        }
       }
     }
   }

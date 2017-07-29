@@ -2,6 +2,7 @@
 #define GAME_H__
 
 #include "platform.h"
+#include "assets.h"
 #include "meat_space.h"
 #include "memory.h"
 
@@ -19,6 +20,9 @@ reflectable struct GameState {
   MeatSpace* TMP_meat_space;
   AssetManager* asset_manager;
   f32 perlin_scale;
+
+  AssetSpec* asset_specs;
+  int asset_specs_count;
 
 #ifdef FALL_INTERNAL
   Editor* editor;

@@ -36,22 +36,23 @@ b32 handle_sdl_event(SDL_Event* event, PlatformContext* context) {
     } break;
     case SDL_KEYDOWN:
     case SDL_KEYUP: {
-      SDL_Keycode key_code = event->key.keysym.sym;
-      b32 ended_down = event->key.state != SDL_RELEASED;
+      if (!g_game_code.imgui_get_io().WantCaptureKeyboard) {
+        SDL_Keycode key_code = event->key.keysym.sym;
+        b32 ended_down = event->key.state != SDL_RELEASED;
 
-      if (event->type == SDL_KEYUP || event->key.repeat == 0) {
-        switch (key_code) {
-          #define KEY_MAPPING(sdl, platform) case sdl: {\
-            input->platform.ended_down = ended_down;\
-            input->platform.transition_count++;\
-          } break;
-          #define MODIFIER_MAPPING(sdl, platform) case sdl: {\
-            input->platform = ended_down;\
-          } break;
-          #include "key_mappings.h"
-          #undef SIMPLE_KEY_MAPPING
-        }
-        switch (key_code) {
+        if (event->type == SDL_KEYUP || event->key.repeat == 0) {
+          switch (key_code) {
+#define KEY_MAPPING(sdl, platform) case sdl: {\
+              input->platform.ended_down = ended_down;\
+              input->platform.transition_count++;\
+            } break;
+#define MODIFIER_MAPPING(sdl, platform) case sdl: {\
+              input->platform = ended_down;\
+            } break;
+#include "key_mappings.h"
+#undef SIMPLE_KEY_MAPPING
+          }
+          switch (key_code) {
           case SDLK_UP: {
             input->button_a.ended_down = ended_down;
             input->button_a.transition_count++;
@@ -76,6 +77,7 @@ b32 handle_sdl_event(SDL_Event* event, PlatformContext* context) {
           case SDLK_z: {
             input->analog_l_trigger.value = ended_down ? 1.0f : 0.0f;
           } break;
+          }
         }
       }
     } break;

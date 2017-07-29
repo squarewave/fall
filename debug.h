@@ -4,6 +4,8 @@
 #include "platform.h"
 #include "typeinfo.h"
 
+#define EDITABLE_STRING_BUFFER_LENGTH 128
+
 void show_debug_log();
 
 #define inspect_struct(type, pvalue) inspect_struct_(TypeInfo_ID_##type, (void*)pvalue, (char*)#pvalue)

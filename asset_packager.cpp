@@ -3,8 +3,9 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <Windows.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
@@ -59,29 +60,30 @@ u32* temp_atlas_data = NULL;
 
 EntireFile read_entire_file(char* filepath) {
   EntireFile result = {};
+  char *buffer;
 
-  FILE *f = fopen(filepath, "rb");
-
-  if (f == 0) {
-    printf("Failed to open file %s\n", filepath);
+  HANDLE file = CreateFile(filepath, GENERIC_READ, 0, NULL,
+                           OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+  if (file == INVALID_HANDLE_VALUE) {
+    printf("Failed to open file %s %d\n", filepath, GetLastError());
     exit(1);
   }
 
-  fseek(f, 0, SEEK_END);
-  long fsize = ftell(f);
-  fseek(f, 0, SEEK_SET);
-
-  char *string = (char *)malloc(fsize + 1);
-  if (!fread(string, fsize, 1, f)) {
-    printf("No results from fread\n");
+  LARGE_INTEGER file_size;
+  if (!GetFileSizeEx(file, &file_size)) {
+    printf("File has no contents: %s\n", filepath);
     exit(1);
   }
-  fclose(f);
 
-  string[fsize] = 0;
+  buffer = (char*)malloc((size_t)file_size.QuadPart);
+  DWORD bytes_read;
+  if (!ReadFile(file, buffer, file_size.LowPart, &bytes_read, NULL)) {
+    printf("Failed to read file %s\n", filepath);
+    exit(1);
+  }
 
-  result.contents = (char *)string;
-  result.content_size = (i32)fsize;
+  result.contents = buffer;
+  result.content_size = file_size.LowPart;
 
   return result;
 }
@@ -100,6 +102,7 @@ b32 write_entire_file(char* filepath, char* contents, i32 content_size) {
     printf("Failed to write entire file %s\n", filepath);
     exit(1);
   }
+  fclose(f);
 
   return true;
 }
@@ -250,7 +253,7 @@ int main(int argc, char const *argv[]) {
   auto file_result = read_entire_file("asset_specs");
 
   int spec_count;
-  AssetSpec* specs_ptr = (AssetSpec*)
+  AssetSpec* specs = (AssetSpec*)
     deserialize_struct_array(a, TypeInfo_ID_AssetSpec,
                              file_result.contents,
                              file_result.content_size,
@@ -259,7 +262,7 @@ int main(int argc, char const *argv[]) {
   begin_archive((char*)"build/assets/test_images.pak");
 
   for (i32 i = 0; i < spec_count; i++) {
-    auto spec = specs_ptr[i];
+    auto spec = specs[i];
     if (spec.use_anchor) {
       add_png(spec.asset_type, spec.asset_attributes, spec.filepath, spec.anchor_x, spec.anchor_y);
     } else {

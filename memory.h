@@ -107,4 +107,19 @@ char* sbprintf(Allocator* a, const char* fmt, ...) {
   return result;
 }
 
+char* sbnprintf(Allocator* a, i32 size, const char* fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+
+  size_t aligned_size = size + 8;
+  aligned_size &= ~0b0111;
+  aligned_size |= 0b1000;
+  char * result = (char*)stretchy_buffer_grow_(a, aligned_size);
+  vsnprintf(result, aligned_size, "%s", args);
+
+  va_end(args);
+
+  return result;
+}
+
 #endif /* end of include guard: MEMORY_H__ */
