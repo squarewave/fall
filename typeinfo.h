@@ -51,6 +51,49 @@ inline b32 next_member(TypeInfo_ID id, MemberInfo** member_info) {
   }
 }
 
+struct MemberInfoIterator {
+  MemberInfo* member_stack[32];
+  i32 member_stack_index;
+};
+
+inline b32 next_member_flattened(TypeInfo_ID id, MemberInfo** member_info, MemberInfoIterator* it) {
+  assert(id > TypeInfo_ID_end_primitives);
+  while (it->member_stack_index > 0) {
+    MemberInfo* recursive_member_info = *member_info;
+    b32 recursive_result = next_member(it->member_stack[it->member_stack_index - 1]->member_type, &recursive_member_info);
+    if (recursive_result) {
+      *member_info = recursive_member_info;
+    } else {
+      *member_info = it->member_stack[--it->member_stack_index];
+    }
+  }
+
+  auto ti = get_type_info(id);
+  if (!*member_info) {
+    while (true) {
+      *member_info = TypeInfo_member_table + ti.members_start;
+      auto member_type = get_type_info((*member_info)->member_type);
+      if (member_type.kind == TypeKind_struct) {
+        it->member_stack[it->member_stack_index++] = *member_info;
+        ti = member_type;
+      } else {
+        break;
+      }
+    }
+    assert(ti.members_start < ARRAY_LENGTH(TypeInfo_member_table));
+    return true;
+  } else {
+    *member_info = *member_info + 1;
+    if (*member_info - TypeInfo_member_table < ARRAY_LENGTH(TypeInfo_member_table) &&
+      (*member_info)->parent_type == id) {
+      return true;
+    } else {
+      *member_info = NULL;
+      return false;
+    }
+  }
+}
+
 #define enum_member_name(type, value) enum_member_name_(TypeInfo_ID_##type, value)
 inline char* enum_member_name_(TypeInfo_ID type_id, int value) {
   for (i32 i = 0; i < ARRAY_LENGTH(TypeInfo_member_table); i++) {

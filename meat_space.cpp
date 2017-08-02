@@ -710,8 +710,8 @@ inline void destroy_projectile(MeatSpace* meat_space, i32 projectile) {
 
 MeatSpaceEntityTemplate* get_entity_template(MeatSpace* meat_space, MeatSpaceEntityTemplateId template_id) {
   MeatSpaceEntityTemplate* result = NULL;
-  for (i32 i = 0; i < meat_space->template_collection.templates_count; i++) {
-    auto t_candidate = meat_space->template_collection.templates + i;
+  for (i32 i = 0; i < g_game_state->meat_space_entity_templates.templates_count; i++) {
+    auto t_candidate = g_game_state->meat_space_entity_templates.templates + i;
     if (t_candidate->id == template_id) {
       result = t_candidate;
       break;
@@ -742,12 +742,10 @@ MeatSpaceEntity* create_entity_from_template(MeatSpace* meat_space,
   i32 initial_count = meat_space->collision_volumes_count;
   if (t->collision_volumes != -1) {
     CollisionVolume* t_volume = NULL;
-    i32 box = t->collision_volumes;
-    while (next_collision_volume(&meat_space->template_collection, t, &t_volume)) {
+    while (next_collision_volume(&g_game_state->meat_space_entity_templates, t, &t_volume)) {
       auto volume = &meat_space->collision_volumes[meat_space->collision_volumes_count++];
       *volume = *t_volume;
       volume->common.entity_id = result->id;
-      box++;
     }
     result->collision_volumes = initial_count;
   } else if (!has_flag(t->flags, ENTITY_FLAG_TRAVERSABLE)) {

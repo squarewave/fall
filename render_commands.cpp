@@ -102,3 +102,10 @@ void set_camera_scale(RenderCommands* render_commands, f32 world_width, f32 worl
   render_commands->view_width = world_width;
   render_commands->view_height = world_height;
 }
+
+void set_clear_color(RenderCommands * render_commands, f32 r, f32 g, f32 b)
+{
+  render_commands->clear_r = r;
+  render_commands->clear_g = g;
+  render_commands->clear_b = b;
+}

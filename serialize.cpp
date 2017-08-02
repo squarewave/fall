@@ -146,7 +146,8 @@ void push_offset_mappings_for_struct(Allocator* a, TypeInfo_ID type_id, i32 in_m
                                      i32* member_index,
                                      size_t in_base_offset, size_t out_base_offset) {
   MemberInfo* member = NULL;
-  while (next_member(type_id, &member)) {
+  MemberInfoIterator it = { 0 };
+  while (next_member_flattened(type_id, &member, &it)) {
     assert(member->member_kind != MemberKind_array);
     assert(member->member_kind != MemberKind_array_of_pointers);
     if (member->member_kind == MemberKind_pointer) {
@@ -192,7 +193,8 @@ void* deserialize_struct_array(Allocator* a, TypeInfo_ID type_id, void* data,
   i32 offset_map_count = 0;
 
   i32 member_index = 0;
-  push_offset_mappings_for_struct(a, type_id, *in_member_count, in_members, &offset_map_count, &member_index, 0, 0);
+  push_offset_mappings_for_struct(a, type_id, *in_member_count, in_members,
+                                  &offset_map_count, &member_index, 0, 0);
 
   void* result = stretchy_buffer_init(a);
   auto ti = get_type_info(type_id);

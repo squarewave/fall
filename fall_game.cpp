@@ -13,7 +13,8 @@
 
 #ifdef FALL_INTERNAL
 #include "debug.cpp"
-#include "editor.cpp"
+#include "asset_editor.cpp"
+#include "entity_editor.cpp"
 #endif
 
 #define STB_IMAGE_IMPLEMENTATION

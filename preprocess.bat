@@ -16,7 +16,7 @@ if %errorlevel% neq 0 goto :error
 
 popd
 
-build\preprocessor.exe platform.h editor.h^
+build\preprocessor.exe platform.h asset_editor.h entity_editor.h^
   meat_space.h assets.h geometry.h game.h grid.h asset_manager.h^
   memory.h > "generated_typeinfo.h"
 

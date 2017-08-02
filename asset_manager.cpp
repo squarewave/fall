@@ -37,7 +37,7 @@ inline ArchiveEntryHeader_texture_atlas* get_atlas_for_type(AssetType type) {
   // return *((ArchiveEntryHeader_texture_atlas**)pget);
 }
 
-void unload_archive(GameArchiveHeader* header) {
+void unload_archive(GameArchiveHeader* header, size_t total_size) {
   ArchiveEntryType* next_type = (ArchiveEntryType*)(header + 1);
   for (int i = 0; i < header->archive_entry_count; ++i) {
     switch (*next_type) {
@@ -54,15 +54,15 @@ void unload_archive(GameArchiveHeader* header) {
       case ArchiveEntryType_none: break;
     }
   }
-
-  g_asset_manager->main_archive = header;
 }
 
 void assets_refresh() {
   if (g_platform.file_has_been_touched(MAIN_ARCHIVE_PATH, &g_asset_manager->main_archive_last_write_time)) {
     stbi_set_flip_vertically_on_load(true);
     LOG("Refreshing %s\n", MAIN_ARCHIVE_PATH);
-    unload_archive((GameArchiveHeader*)g_platform.entire_file_result(g_asset_manager->main_archive_async_handle).contents);
+    auto file = g_platform.entire_file_result(g_asset_manager->main_archive_async_handle);
+    unload_archive((GameArchiveHeader*)file.contents,
+                   file.content_size);
     g_platform.free_file_memory(g_asset_manager->main_archive_async_handle);
     g_asset_manager->main_archive_async_handle = g_platform.begin_read_entire_file(MAIN_ARCHIVE_PATH);
     g_asset_manager->main_archive = NULL;
@@ -96,6 +96,7 @@ inline void assets_complete_init() {
   }
 
   g_asset_manager->main_archive = header;
+  g_asset_manager->main_archive_size = archive.content_size;
 }
 
 inline void assets_maybe_complete_init() {
@@ -124,8 +125,8 @@ TextureAsset assets_get_atlas(AssetType type) {
   return result;
 }
 
-TextureAsset assets_get_texture(AssetType type, AssetAttributes attrs) {
-  TextureAsset result = {};
+PackedTexture* assets_get_packed_texture(AssetType type, AssetAttributes attrs) {
+  PackedTexture* result = NULL;
 
   assets_maybe_complete_init();
   auto atlas = get_atlas_for_type(type);
@@ -156,18 +157,39 @@ TextureAsset assets_get_texture(AssetType type, AssetAttributes attrs) {
     }
   }
 
-  if (min_distance_index != -1) {
-    auto tex = packed_textures[min_distance_index];
+  result = packed_textures + min_distance_index;
+  return result;
+}
+
+TextureAsset assets_get_texture(AssetType type, AssetAttributes attrs) {
+  TextureAsset result = {};
+
+  assets_maybe_complete_init();
+  auto atlas = get_atlas_for_type(type);
+  if (!atlas) {
+    LOG("No atlas: %d", type);
+    return result;
+  }
+
+  auto tex = assets_get_packed_texture(type, attrs);
+  if (tex) {
     result.handle = atlas->texture_handle;
-    result.top = 1.0f - (f32)tex.top / (f32)TEXTURE_ATLAS_DIAMETER;
-    result.bottom = 1.0f - (f32)tex.bottom / (f32)TEXTURE_ATLAS_DIAMETER;
-    result.left = (f32)tex.left / (f32)TEXTURE_ATLAS_DIAMETER;
-    result.right = (f32)tex.right / (f32)TEXTURE_ATLAS_DIAMETER;
-    result.px_width = tex.right - tex.left;
-    result.px_height = tex.bottom - tex.top;
-    result.anchor_x = tex.anchor_x;
-    result.anchor_y = tex.anchor_y;
+    result.top = 1.0f - (f32)tex->top / (f32)TEXTURE_ATLAS_DIAMETER;
+    result.bottom = 1.0f - (f32)tex->bottom / (f32)TEXTURE_ATLAS_DIAMETER;
+    result.left = (f32)tex->left / (f32)TEXTURE_ATLAS_DIAMETER;
+    result.right = (f32)tex->right / (f32)TEXTURE_ATLAS_DIAMETER;
+    result.px_width = tex->right - tex->left;
+    result.px_height = tex->bottom - tex->top;
+    result.anchor_x = tex->anchor_x;
+    result.anchor_y = tex->anchor_y;
   }
 
   return result;
+}
+
+void assets_save_edits() {
+  g_platform.DEBUG_write_entire_file(MAIN_ARCHIVE_PATH,
+                                     g_asset_manager->main_archive_size,
+                                     (void*)g_asset_manager->main_archive);
+  g_platform.file_has_been_touched(MAIN_ARCHIVE_PATH, &g_asset_manager->main_archive_last_write_time);
 }

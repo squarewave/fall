@@ -371,7 +371,7 @@ void opengl_render_commands(RenderCommands* render_commands, i32 window_width, i
     glViewport(0, 0, window_width, window_height);
     glScissor(0, 0, window_width, window_height);
     glClearDepth(1.0f);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClearColor(render_commands->clear_r, render_commands->clear_g, render_commands->clear_b, 1.0f);
     glDepthFunc(GL_LESS);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     error = glGetError();
@@ -492,7 +492,7 @@ void opengl_render_commands(RenderCommands* render_commands, i32 window_width, i
   glViewport(0, 0, window_width, window_height);
   glScissor(0, 0, window_width, window_height);
   glClearDepth(1.0f);
-  glClearColor(0.1f, 0.3f, 0.5f, 1.0f);
+  glClearColor(render_commands->clear_r, render_commands->clear_g, render_commands->clear_b, 0.0f);
   glDepthFunc(GL_LESS);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

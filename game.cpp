@@ -17,7 +17,8 @@
 
 #ifdef FALL_INTERNAL
 #include "debug.h"
-#include "editor.h"
+#include "asset_editor.h"
+#include "entity_editor.h"
 #endif
 
 GameState* g_game_state;
@@ -61,7 +62,8 @@ GAME_UPDATE_AND_RENDER(game_update_and_render) {
     }
 
 #ifdef FALL_INTERNAL
-    g_game_state->editor = game_alloc(Editor);
+    g_game_state->asset_editor = game_alloc(AssetEditor);
+    g_game_state->entity_editor = game_alloc(EntityEditor);
 #endif
 
     g_game_state->dummy_texture = g_platform.register_texture(result_buffer, 256, 256, 4);
@@ -81,31 +83,21 @@ GAME_UPDATE_AND_RENDER(game_update_and_render) {
     size_t templates_size = f.content_size;
     void* templates_serialized = f.contents;
 
-    meat_space->template_collection.templates = (MeatSpaceEntityTemplate*)
+    g_game_state->meat_space_entity_templates.templates = (MeatSpaceEntityTemplate*)
       deserialize_struct_array(&g_game_state->allocator, TypeInfo_ID_MeatSpaceEntityTemplate,
                                templates_serialized, templates_size,
-                               &meat_space->template_collection.templates_count);
+                               &g_game_state->meat_space_entity_templates.templates_count);
     g_platform.DEBUG_free_file_memory(f.contents);
 
     f = g_platform.DEBUG_read_entire_file("../collision_volumes");
     size_t collision_volumes_size = f.content_size;
     void* collision_volumes_serialized = f.contents;
 
-    meat_space->template_collection.collision_volumes = (CollisionVolume*)
-      deserialize_struct_array(&g_game_state->allocator, TypeInfo_ID_MeatSpaceEntityTemplate,
+    g_game_state->meat_space_entity_templates.collision_volumes = (CollisionVolume*)
+      deserialize_struct_array(&g_game_state->allocator, TypeInfo_ID_CollisionVolume,
                                collision_volumes_serialized, collision_volumes_size,
-                               &meat_space->template_collection.collision_volumes_count);
+                               &g_game_state->meat_space_entity_templates.collision_volumes_count);
     g_platform.DEBUG_free_file_memory(f.contents);
-
-    f = g_platform.DEBUG_read_entire_file("../asset_specs");
-    AssetSpec* specs_ptr = (AssetSpec*)
-      deserialize_struct_array(&g_game_state->allocator, TypeInfo_ID_AssetSpec,
-                               f.contents,
-                               f.content_size,
-                               &g_game_state->asset_specs_count,
-                               EDITABLE_STRING_BUFFER_LENGTH);
-    g_platform.DEBUG_free_file_memory(f.contents);
-    g_game_state->asset_specs = specs_ptr;
 
     meat_space->camera.position = vec2{ 0.0f, 0.0f };
     meat_space->camera.scale = vec2{ 1920.0f / PX_PER_PIXEL, 1080.0f / PX_PER_PIXEL };
@@ -197,8 +189,8 @@ GAME_UPDATE_AND_RENDER(game_update_and_render) {
   }
 
   inspect_struct(GameState, g_game_state);
-  for (i32 i = 0; i < g_game_state->TMP_meat_space->template_collection.templates_count; i++) {
-    auto t = &g_game_state->TMP_meat_space->template_collection.templates[i];
+  for (i32 i = 0; i < g_game_state->meat_space_entity_templates.templates_count; i++) {
+    auto t = &g_game_state->meat_space_entity_templates.templates[i];
     inspect_struct_named(MeatSpaceEntityTemplate,
                          t,
                          enum_member_name(MeatSpaceEntityTemplateId, t->id));
@@ -276,8 +268,10 @@ GAME_UPDATE_AND_RENDER(game_update_and_render) {
   }
 #endif
 
-  if (g_game_state->editor_mode) {
-    editor_update_and_render();
+  if (g_game_state->editor_mode == EditorMode_assets) {
+    asset_editor_update_and_render();
+  } else if (g_game_state->editor_mode == EditorMode_entities) {
+    entity_editor_update_and_render();
   } else {
     meat_space_update_and_render(g_game_state->TMP_meat_space);
   }
@@ -311,6 +305,17 @@ GAME_DEBUG_END_FRAME(game_debug_end_frame) {
                          0, "max transient KB used", 0.0f, (f32)TRANSIENT_MEMORY_SIZE, ImVec2(0, 80));
     ImGui::PlotHistogram("", game_memory, buffer_length,
                          0, "game KB used", 0.0f, (f32)GAME_MEMORY_SIZE, ImVec2(0, 80));
+  }
+  ImGui::End();
+  ImGui::SetNextWindowPos(ImVec2(10, 10));
+  ImGui::Begin("Fixed Overlay", NULL, ImVec2(0, 0), 0.3f,
+               ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
+  if (ImGui::Button("Asset Editor")) {
+    g_game_state->editor_mode = EditorMode_assets;
+  } else if (ImGui::Button("Entity Editor")) {
+    g_game_state->editor_mode = EditorMode_entities;
+  } else if (ImGui::Button("Game Mode")) {
+    g_game_state->editor_mode = EditorMode_none;
   }
   ImGui::End();
 

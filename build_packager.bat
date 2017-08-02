@@ -21,7 +21,7 @@ build\preprocessor.exe platform.h assets.h > "packager_typeinfo.h"
 pushd build
 
 set CommonCompilerFlags=-Zi -Od -DFALL_INTERNAL
-set CommonLinkerFlags= -incremental:no -opt:ref user32.lib gdi32.lib winmm.lib
+set CommonLinkerFlags=-PDB:asset_packager.pdb -incremental:no -opt:ref user32.lib gdi32.lib winmm.lib
 
 IF NOT EXIST assets mkdir assets
 

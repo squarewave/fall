@@ -20,6 +20,7 @@ struct RenderCommands {
   f32 view_center_x, view_center_y;
   f32 view_width, view_height;
   f32 screen_width, screen_height;
+  f32 clear_r, clear_g, clear_b;
   TexturedQuadVertex* textured_quad_vertices;
   i32 textured_quad_vertices_count;
   i32 textured_quad_vertices_max_count;
@@ -50,5 +51,6 @@ void push_quad_frame(RenderCommands* render_commands,
 void set_camera_position(RenderCommands* render_commands, f32 world_x, f32 world_y);
 
 void set_camera_scale(RenderCommands* render_commands, f32 world_width, f32 world_height);
+void set_clear_color(RenderCommands* render_commands, f32 r, f32 g, f32 b);
 
 #endif /* end of include guard: RENDER_COMMANDS_H__ */

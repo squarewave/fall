@@ -227,10 +227,10 @@ void add_png(AssetType asset_type, AssetAttributes attrs, char* filename, i32 an
   bitmap.asset_type = asset_type;
   bitmap.asset_attributes = attrs;
   if (anchor_x == -256) {
-    anchor_x = bitmap.width / 2;
+    anchor_x = bitmap.width / 2 + 1;
   }
   if (anchor_y == -256) {
-    anchor_y = bitmap.height / 2;
+    anchor_y = bitmap.height / 2 + 1;
   }
   bitmap.anchor_x = anchor_x;
   bitmap.anchor_y = anchor_y;

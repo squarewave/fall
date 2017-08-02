@@ -177,7 +177,9 @@ void inspect_member(MemberInfo mi, void* value) {
     } else {
       if (CollapsingHeader(tprintf("%s (pointer)", mi.member_name))) {
         if (ptr) {
+          Indent();
           inspect_struct_(mi.member_type, ptr, mi.member_name, false);
+          Unindent();
         } else {
           Indent();
           Text("NULL");
@@ -194,7 +196,9 @@ void inspect_member(MemberInfo mi, void* value) {
 void inspect_struct_(TypeInfo_ID type_id, void* value, char* member_name, b32 collapse) {
   PushID(value);
   if (!collapse || CollapsingHeader(member_name)) {
-    Indent();
+    if (collapse) {
+      Indent();
+    }
     bool member_found = false;
     for (i32 i = 0; i < ARRAY_LENGTH(TypeInfo_member_table); i++) {
       auto ti = TypeInfo_member_table[i];
@@ -206,7 +210,9 @@ void inspect_struct_(TypeInfo_ID type_id, void* value, char* member_name, b32 co
     if (!member_found) {
       Text("no members");
     }
-    Unindent();
+    if (collapse) {
+      Unindent();
+    }
   }
   PopID();
 }

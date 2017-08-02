@@ -10,7 +10,24 @@ const float PX_PER_PIXEL = 4.0f;
 
 struct MeatSpace;
 struct AssetManager;
-struct Editor;
+struct AssetEditor;
+struct EntityEditor;
+
+#ifdef FALL_INTERNAL
+reflectable enum EditorMode {
+  EditorMode_none,
+  EditorMode_assets,
+  EditorMode_entities,
+};
+#endif
+
+reflectable struct MeatSpaceEntityTemplateCollection {
+  MeatSpaceEntityTemplate* templates;
+  i32 templates_count;
+
+  CollisionVolume* collision_volumes;
+  i32 collision_volumes_count;
+};
 
 reflectable struct GameState {
   b32 initialized;
@@ -21,15 +38,15 @@ reflectable struct GameState {
   AssetManager* asset_manager;
   f32 perlin_scale;
 
-  AssetSpec* asset_specs;
-  int asset_specs_count;
+  MeatSpaceEntityTemplateCollection meat_space_entity_templates;
 
 #ifdef FALL_INTERNAL
-  Editor* editor;
+  AssetEditor* asset_editor;
+  EntityEditor* entity_editor;
   PlatformTexture dummy_texture;
   b32 show_grid;
   b32 show_occupied_spaces;
-  b32 editor_mode;
+  EditorMode editor_mode;
   MeatSpaceEntityTemplateId pending_entity_placement_id;
   b32 draw_path_finding;
   b32 draw_collision_volumes;

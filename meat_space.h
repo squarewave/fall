@@ -258,18 +258,6 @@ reflectable struct MeatSpaceEntityTemplate {
   vec2 texture_anchor;
 
   f32 max_health;
-
-#if FALL_INTERNAL
-  b32 editing;
-#endif
-};
-
-reflectable struct MeatSpaceEntityTemplateCollection {
-  MeatSpaceEntityTemplate* templates;
-  i32 templates_count;
-
-  CollisionVolume* collision_volumes;
-  i32 collision_volumes_count;
 };
 
 reflectable struct MeatSpace {
@@ -299,8 +287,6 @@ reflectable struct MeatSpace {
   i32 position_grid[POSITION_GRID_WIDTH * POSITION_GRID_WIDTH];
   PositionGridBucketNode position_grid_buckets[POSITION_GRID_BUCKETS_SIZE];
   i32 position_grid_bucket_index;
-
-  MeatSpaceEntityTemplateCollection template_collection;
 
   MeatSpaceCamera camera;
 
