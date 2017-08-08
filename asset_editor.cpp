@@ -35,7 +35,8 @@ void asset_editor_update_and_render() {
                                f.contents,
                                f.content_size,
                                &g_editor->asset_specs_count,
-                               EDITABLE_STRING_BUFFER_LENGTH);
+                               EDITABLE_STRING_BUFFER_LENGTH,
+                               MAX_ASSET_SPECS);
     g_platform.DEBUG_free_file_memory(f.contents);
     g_editor->asset_specs = specs_ptr;
     g_editor->asset_being_edited = -1;
@@ -51,12 +52,39 @@ void asset_editor_update_and_render() {
     PushID(i);
     if (g_editor->asset_being_edited == i) {
       if (Button("Save", ImVec2(80, 20))) {
+        save_asset_specs();
         g_editor->asset_being_edited = -1;
       }
     } else {
       if (Button("Edit", ImVec2(80, 20))) {
+        save_asset_specs();
         g_editor->asset_being_edited = i;
       }
+    }
+    SameLine();
+    if (Button("Delete", ImVec2(80, 20))) {
+      OpenPopup("Are you sure?");
+    }
+    SetNextWindowSize(ImVec2(240, 80));
+    if (BeginPopupModal("Are you sure?", NULL, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
+      Text("Delete %s?", g_editor->asset_specs[i].filepath);
+      if (Button("Yes")) {
+        i32 remaining = g_editor->asset_specs_count - i - 1;
+        memmove(g_editor->asset_specs + i, g_editor->asset_specs + i + 1, remaining * sizeof(AssetSpec));
+        if (g_editor->asset_being_edited > i) {
+          g_editor->asset_being_edited--;
+        } else if (g_editor->asset_being_edited == i) {
+          g_editor->asset_being_edited = -1;
+        }
+        g_editor->asset_specs_count--;
+        save_asset_specs();
+        CloseCurrentPopup();
+      }
+      SameLine();
+      if (Button("No")) {
+        CloseCurrentPopup();
+      }
+      EndPopup();
     }
     SameLine();
     Text("%s", g_editor->asset_specs[i].filepath);
@@ -64,7 +92,7 @@ void asset_editor_update_and_render() {
   }
 
   if (Button("Add", ImVec2(80, 20))) {
-
+    g_editor->asset_specs_count++;
   }
 
   End();

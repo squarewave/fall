@@ -5,7 +5,6 @@
 #include "asset_manager.h"
 #include "debug.h"
 #include "game_math.h"
-#include "imgui_extensions.h"
 #include "meat_space.h"
 #include "memory.h"
 #include "render_commands.h"
@@ -1194,10 +1193,6 @@ void meat_space_update_and_render(MeatSpace* meat_space) {
       auto z_bias = entity->z_bias;
 
       draw_entity_texture(meat_space, p, color, asset_type, asset_attributes, z_bias);
-
-      if (entity->selected) {
-        inspect_struct(MeatSpaceEntity, entity);
-      }
 
 #ifdef FALL_INTERNAL
       if (g_game_state->draw_collision_volumes) {

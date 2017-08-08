@@ -1,7 +1,5 @@
 #pragma once
 
-#define TYPEINFO_MEMBER_FLAG_CSTRING  0x01
-
 #include "platform.h"
 // PlatformTexture
 // PlatformFileLastWriteTime

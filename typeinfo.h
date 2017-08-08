@@ -5,6 +5,13 @@
 #endif
 #include TYPEINFO_FILE
 
+#define TYPEINFO_MEMBER_FLAG_CSTRING  0x01
+#define TYPEINFO_MEMBER_FLAG_ARRAY    0x02
+
+#define void_at_offset(value, offset) ((void*)(((char*)(value)) + (offset)))
+#define type_ptr_at_offset(value, type, offset) ((type*)(((char*)(value)) + (offset)))
+#define type_at_offset(value, type, offset) (*type_ptr_at_offset(value, type, offset))
+
 inline TypeInfo get_type_info(TypeInfo_ID id) {
   if (id > TypeInfo_ID_end_primitives) {
     i32 type_info_index = id - TypeInfo_ID_end_primitives - 1;
@@ -104,4 +111,15 @@ inline char* enum_member_name_(TypeInfo_ID type_id, int value) {
   }
 
   return NULL;
+}
+
+inline i32 get_array_count(MemberInfo mi, void* value) {
+  auto parent_type = get_type_info(mi.parent_type);
+  assert(mi.table_index + 1 < ARRAY_LENGTH(TypeInfo_member_table));
+  MemberInfo count_member = TypeInfo_member_table[mi.table_index + 1];
+  assert(count_member.parent_type == mi.parent_type);
+  assert(strstr(count_member.member_name, mi.member_name));
+  assert(strstr(count_member.member_name, "_count"));
+  assert(count_member.member_type == TypeInfo_ID_i32);
+  return type_at_offset(value, i32, count_member.offset);
 }

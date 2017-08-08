@@ -1,4 +1,7 @@
+#include <inttypes.h>
+
 #include "platform.h"
+#include "render_commands.h"
 #include "imgui/imgui.h"
 #include "debug.h"
 #include "memory.h"
@@ -8,8 +11,9 @@ char debug_print_copy_buffer[DEBUG_PRINT_RING_BUFFER_SIZE + 1] = {0};
 using namespace ImGui;
 
 void show_debug_log() {
-  SetNextWindowSize(ImVec2(200,100), ImGuiSetCond_FirstUseEver);
-  if (Begin("Output")) {
+  SetNextWindowPos(ImVec2(g_render_commands->screen_width - 410.0f, 120.0f));
+  if (Begin("Output", NULL, ImVec2(400.0f, 800.0f), 0.3f,
+            ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings)) {
     if (*g_debug_print_ring_buffer_write_head < DEBUG_PRINT_RING_BUFFER_SIZE) {
       Text("%s", (const char*)g_debug_print_ring_buffer);
     } else {
@@ -30,10 +34,6 @@ void show_debug_log() {
   }
   End();
 }
-
-#define void_at_offset(value, offset) ((void*)(((char*)(value)) + (offset)))
-#define type_ptr_at_offset(value, type, offset) ((type*)(((char*)(value)) + (offset)))
-#define type_at_offset(value, type, offset) (*type_ptr_at_offset(value, type, offset))
 
 void inspect_enum(int* value, MemberInfo member_info) {
   int item = 0;
@@ -59,15 +59,47 @@ void inspect_enum(int* value, MemberInfo member_info) {
   }
 }
 
-void inspect_value(MemberInfo mi, void* value, size_t offset) {
+void inspect_value(MemberInfo mi, void* value, size_t offset, bool collapse = true) {
   switch (mi.member_type) {
   case TypeInfo_ID_void: Text("%s: void", mi.member_name);  break;
   case TypeInfo_ID_size_t:
-  case TypeInfo_ID_u64: Text("%s: %llu", mi.member_name, type_at_offset(value, u64, offset)); break;
-  case TypeInfo_ID_u32: Text("%s: %u", mi.member_name, type_at_offset(value, u32, offset)); break;
-  case TypeInfo_ID_u16: Text("%s: %hu", mi.member_name, type_at_offset(value, u16, offset)); break;
+  case TypeInfo_ID_u64: {
+    char buffer[64];
+    sprintf(buffer, "%" PRIu64, type_at_offset(value, u64, offset));
+    InputText(mi.member_name, buffer, sizeof(buffer));
+    u64 scanned;
+    if (sscanf(buffer, "%" PRIu64, &scanned)) {
+      *type_ptr_at_offset(value, u64, offset) = scanned;
+    }
+  } break;
+  case TypeInfo_ID_u32: {
+    char buffer[32];
+    sprintf(buffer, "%" PRIu32, type_at_offset(value, u32, offset));
+    InputText(mi.member_name, buffer, sizeof(buffer));
+    u32 scanned;
+    if (sscanf(buffer, "%" PRIu32, &scanned)) {
+      *type_ptr_at_offset(value, u32, offset) = scanned;
+    }
+  } break;
+  case TypeInfo_ID_u16: {
+    char buffer[16];
+    sprintf(buffer, "%" PRIu16, type_at_offset(value, u16, offset));
+    InputText(mi.member_name, buffer, sizeof(buffer));
+    u16 scanned;
+    if (sscanf(buffer, "%" PRIu16, &scanned)) {
+      *type_ptr_at_offset(value, u16, offset) = scanned;
+    }
+  } break;
   case TypeInfo_ID_u8: Text("%s: %u", mi.member_name, type_at_offset(value, u8, offset)); break;
-  case TypeInfo_ID_i64: Text("%s: %lld", mi.member_name, type_at_offset(value, i64, offset)); break;
+  case TypeInfo_ID_i64: {
+    char buffer[64];
+    sprintf(buffer, "%" PRIi64, type_at_offset(value, i64, offset));
+    InputText(mi.member_name, buffer, sizeof(buffer));
+    i64 scanned;
+    if (sscanf(buffer, "%" PRIi64, &scanned)) {
+      *type_ptr_at_offset(value, i64, offset) = scanned;
+    }
+  } break;
   case TypeInfo_ID_int:
   case TypeInfo_ID_i32: InputInt(mi.member_name, type_ptr_at_offset(value, i32, offset)); break;
   case TypeInfo_ID_i16: Text("%s: %hd", mi.member_name, type_at_offset(value, i16, offset)); break;
@@ -98,7 +130,7 @@ void inspect_value(MemberInfo mi, void* value, size_t offset) {
       inspect_enum(type_ptr_at_offset(value, i32, offset), mi);
     } break;
     case TypeKind_struct: {
-      inspect_struct_(mi.member_type, void_at_offset(value, offset), mi.member_name);
+      inspect_struct_(mi.member_type, void_at_offset(value, offset), mi.member_name, collapse);
     } break;
     case TypeKind_union: {
       b32 found = false;
@@ -107,7 +139,7 @@ void inspect_value(MemberInfo mi, void* value, size_t offset) {
         auto union_info = TypeInfo_union_member_table[i];
         if (union_info.union_type_id == mi.member_type && union_info.type == type) {
           found = true;
-          inspect_struct_(union_info.union_member_type_id, void_at_offset(value, offset), mi.member_name);
+          inspect_struct_(union_info.union_member_type_id, void_at_offset(value, offset), mi.member_name, collapse);
           break;
         }
       }
@@ -159,13 +191,13 @@ void inspect_member(MemberInfo mi, void* value) {
   } else if (mi.member_kind == MemberKind_array) {
     auto size = get_type_size(mi.member_type);
     if (CollapsingHeader(tprintf("%s (array)", mi.member_name))) {
+      Indent();
       for (int i = 0; i < mi.array_size; ++i) {
         if (CollapsingHeader(tprintf("(%d)", i))) {
-          i32 size = 0;
-
-          inspect_value(mi, void_at_offset(value, mi.offset + i * size), 0);
+          inspect_value(mi, void_at_offset(value, mi.offset + i * size), 0, false);
         }
       }
+      Unindent();
     }
   } else if (mi.member_kind == MemberKind_pointer) {
     void* ptr = type_at_offset(value, void*, mi.offset);
@@ -173,7 +205,29 @@ void inspect_member(MemberInfo mi, void* value) {
     if (has_flag(mi.flags, TYPEINFO_MEMBER_FLAG_CSTRING)) {
       if (ptr) {
         InputText(mi.member_name, (char*)ptr, EDITABLE_STRING_BUFFER_LENGTH);
+      } else {
+        if (Button("Allocate string (calloc)")) {
+          *type_ptr_at_offset(value, void*, mi.offset) = calloc(EDITABLE_STRING_BUFFER_LENGTH, 1);
+        }
       }
+    } else if (has_flag(mi.flags, TYPEINFO_MEMBER_FLAG_ARRAY)) {
+        auto size = get_type_size(mi.member_type);
+        if (CollapsingHeader(tprintf("%s (array)", mi.member_name))) {
+          if (ptr) {
+            Indent();
+            i32 count = get_array_count(mi, value);
+            for (int i = 0; i < count; ++i) {
+              if (CollapsingHeader(tprintf("(%d)", i))) {
+                inspect_value(mi, void_at_offset(ptr, i * size), 0, false);
+              }
+            }
+            Unindent();
+          } else {
+            Indent();
+            Text("NULL");
+            Unindent();
+          }
+        }
     } else {
       if (CollapsingHeader(tprintf("%s (pointer)", mi.member_name))) {
         if (ptr) {
@@ -191,6 +245,13 @@ void inspect_member(MemberInfo mi, void* value) {
     Text("%s: ---", mi.member_name);
   }
   PopID();
+}
+
+void debug_inspect_(TypeInfo_ID type, void* value, char* name) {
+  MemberInfo dummy_member_info = {};
+  dummy_member_info.member_name = name;
+  dummy_member_info.member_type = type;
+  inspect_value(dummy_member_info, value, 0);
 }
 
 void inspect_struct_(TypeInfo_ID type_id, void* value, char* member_name, b32 collapse) {

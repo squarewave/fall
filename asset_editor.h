@@ -9,9 +9,10 @@ reflectable struct AssetSpecEditState {
 reflectable struct AssetEditor {
   b32 initialized;
 
-  AssetSpec* asset_specs;
+  reflect_member(array) AssetSpec* asset_specs;
+  i32 asset_specs_count;
+
   AssetSpecEditState* asset_spec_edit_state;
-  int asset_specs_count;
   f32 zoom_level;
 
   int asset_being_edited;

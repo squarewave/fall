@@ -33,6 +33,7 @@ typedef double f64;
 #define ZERO(x) memset(&(x), 0, sizeof(x));
 
 const int MAX_CURRENT_BITMAPS = 1024;
+const int MAX_ASSET_SPECS = 4096;
 
 struct Bitmap {
   i32 width, height;
@@ -84,6 +85,7 @@ EntireFile read_entire_file(char* filepath) {
 
   result.contents = buffer;
   result.content_size = file_size.LowPart;
+  CloseHandle(file);
 
   return result;
 }
@@ -257,7 +259,8 @@ int main(int argc, char const *argv[]) {
     deserialize_struct_array(a, TypeInfo_ID_AssetSpec,
                              file_result.contents,
                              file_result.content_size,
-                             &spec_count);
+                             &spec_count,
+                             MAX_ASSET_SPECS);
 
   begin_archive((char*)"build/assets/test_images.pak");
 

@@ -11,6 +11,7 @@
 #define ARRAY_LENGTH(array) (sizeof(array) / sizeof(array[0]))
 
 #define TYPEINFO_MEMBER_FLAG_CSTRING  0x01
+#define TYPEINFO_MEMBER_FLAG_ARRAY    0x02
 
 enum TokenType {
   TOKEN_L_PAREN,
@@ -610,6 +611,9 @@ void parse_member(Parser* parser, int parent_struct, Token type_token) {
       if (match_identifier(metadata_next, "cstring")) {
         m.flags |= TYPEINFO_MEMBER_FLAG_CSTRING;
       }
+      if (match_identifier(metadata_next, "array")) {
+        m.flags |= TYPEINFO_MEMBER_FLAG_ARRAY;
+      }
     }
   }
 
@@ -783,7 +787,6 @@ int main(int argc, char** argv) {
   char** files = &argv[1];
 
   printf("#pragma once\n\n");
-  printf("#define TYPEINFO_MEMBER_FLAG_CSTRING  0x01\n\n");
   Parser p = {};
   for (int32_t i = 0; i < argc - 1; i++) {
     printf("#include \"%s\"\n", files[i]);

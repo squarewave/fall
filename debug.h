@@ -8,10 +8,12 @@
 
 void show_debug_log();
 
+#define debug_inspect(type, pvalue) debug_inspect_(TypeInfo_ID_##type, (void*)pvalue, (char*)#pvalue)
 #define inspect_struct(type, pvalue) inspect_struct_(TypeInfo_ID_##type, (void*)pvalue, (char*)#pvalue)
 #define inspect_struct_no_collapse(type, pvalue) inspect_struct_(TypeInfo_ID_##type, (void*)pvalue, (char*)#pvalue, false)
 #define inspect_struct_named(type, pvalue, name) inspect_struct_(TypeInfo_ID_##type, (void*)pvalue, name)
 
+void debug_inspect_(TypeInfo_ID type, void* value, char* member_name);
 void inspect_struct_(TypeInfo_ID type_id, void* value, char* member_name, b32 collapse = true);
 
 #define debug_serialize_struct(type, pvalue) debug_serialize_struct_(TypeInfo_ID_##type, (void*)pvalue)

@@ -34,6 +34,7 @@ if %errorlevel% neq 0 goto :error
 popd
 
 call "build\asset_packager.exe"
+if %errorlevel% neq 0 goto :error
 echo "packaged"
 
 goto :EOF

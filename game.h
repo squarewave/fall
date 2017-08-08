@@ -7,6 +7,9 @@
 #include "memory.h"
 
 const float PX_PER_PIXEL = 4.0f;
+const i32 MAX_MEAT_SPACE_TEMPLATES = 4096;
+const i32 MAX_COLLISION_VOLUMES = 4096;
+const i32 MAX_ASSET_SPECS = 4096;
 
 struct MeatSpace;
 struct AssetManager;
@@ -16,17 +19,19 @@ struct EntityEditor;
 #ifdef FALL_INTERNAL
 reflectable enum EditorMode {
   EditorMode_none,
+  EditorMode_game,
   EditorMode_assets,
   EditorMode_entities,
 };
 #endif
 
 reflectable struct MeatSpaceEntityTemplateCollection {
-  MeatSpaceEntityTemplate* templates;
+  reflect_member(array) MeatSpaceEntityTemplate* templates;
   i32 templates_count;
 
-  CollisionVolume* collision_volumes;
+  reflect_member(array) CollisionVolume* collision_volumes;
   i32 collision_volumes_count;
+  i32 max_collision_volume_index;
 };
 
 reflectable struct GameState {
@@ -90,9 +95,9 @@ char* tprintf(const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
 
-  int size = vsnprintf(NULL, 0, "%s", args);
+  int size = vsnprintf(NULL, 0, fmt, args);
   char * a = transient_alloc_array(char, size + 1);
-  vsnprintf(a, size + 1, "%s", args);
+  vsnprintf(a, size + 1, fmt, args);
 
   va_end(args);
 

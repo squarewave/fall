@@ -180,7 +180,7 @@ void push_offset_mappings_for_struct(Allocator* a, TypeInfo_ID type_id, i32 in_m
 }
 
 void* deserialize_struct_array(Allocator* a, TypeInfo_ID type_id, void* data,
-                               size_t data_size, i32* out_count,
+                               size_t data_size, i32* out_count, i32 pad_to,
                                i32 string_buffer_length) {
   i32* in_member_count = (i32*)data;
   i32* in_value_count = (i32*)(in_member_count + 1);
@@ -206,6 +206,11 @@ void* deserialize_struct_array(Allocator* a, TypeInfo_ID type_id, void* data,
       auto map = offset_map[j];
       memcpy(out_base + map.out_offset, in_base + map.in_offset, map.size);
     }
+  }
+
+  for (i32 i = *in_value_count; i < pad_to; i++) {
+    void* x = stretchy_buffer_grow_(a, ti.size);
+    memset(x, 0, sizeof(ti.size));
   }
 
   for (i32 i = 0; i < *in_value_count; i++) {

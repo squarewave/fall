@@ -38,10 +38,11 @@ void save_entity_templates() {
   }
 }
 
-void draw_template_collision_volumes(MeatSpaceEntityTemplateCollection* meat_space, MeatSpaceEntityTemplate* entity) {
+void draw_template_collision_volumes(MeatSpaceEntityTemplateCollection* template_collection,
+                                     MeatSpaceEntityTemplate* entity_template) {
   CollisionVolume* volume = NULL;
-  while (next_collision_volume(meat_space, entity, &volume)) {
-    f32 z = entity->z_bias - 0.1f;
+  while (next_collision_volume(template_collection, entity_template, &volume)) {
+    f32 z = entity_template->z_bias - 0.1f;
     u32 color = 0xffffffff;
     switch (volume->type) {
     case CollisionVolume_Type_box: {
@@ -115,9 +116,9 @@ void entity_editor_update_and_render() {
   }
 
   if (g_editor->template_being_edited != -1) {
-
     assert(g_editor->template_being_edited < g_game_state->meat_space_entity_templates.templates_count);
-    auto t = g_game_state->meat_space_entity_templates.templates + g_editor->template_being_edited;
+    auto tc = &g_game_state->meat_space_entity_templates;
+    auto t = tc->templates + g_editor->template_being_edited;
 
     auto tex = assets_get_texture(t->asset_type, {});
     f32 left = (-tex.anchor_x + 1.0f);
@@ -133,13 +134,42 @@ void entity_editor_update_and_render() {
                        tex.left, tex.top, left, top, z, color,
                        tex.right, tex.top, right, top, z, color);
 
-    // draw_template_collision_volumes(ts, t);
+    draw_template_collision_volumes(ts, t);
 
     SetNextWindowPos(ImVec2(screen_width - 410.0f, 120.0f));
     Begin("Properties", NULL, ImVec2(400.0f, 800.0f), 0.3f,
           ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
 
     inspect_struct_no_collapse(MeatSpaceEntityTemplate, t);
+
+    Separator();
+    CollisionVolume* it = NULL;
+    while (next_collision_volume(ts, t, &it)) {
+      debug_inspect(CollisionVolume, it);
+    }
+    if (Button("Add Collision Volume")) {
+      if (t->collision_volumes == -1) {
+        t->collision_volumes = tc->max_collision_volume_index++;
+        auto volume = &tc->collision_volumes[t->collision_volumes];
+        memset(volume, 0, sizeof(*volume));
+        volume->type = CollisionVolume_Type_box;
+        volume->box.entity_id = t->id;
+        volume->box.dimensions = vec2{ 6.0f, 6.0f };
+      } else {
+        auto volume = &tc->collision_volumes[t->collision_volumes];
+        memmove(volume + 1, volume, (tc->max_collision_volume_index - t->collision_volumes) * sizeof(*volume));
+        memset(volume, 0, sizeof(*volume));
+        volume->type = CollisionVolume_Type_box;
+        volume->box.entity_id = t->id;
+        volume->box.dimensions = vec2{ 6.0f, 6.0f };
+        tc->max_collision_volume_index++;
+        for (i32 i = 0; i < ts->templates_count; i++) {
+          if (ts->templates[i].collision_volumes > t->collision_volumes) {
+            ts->templates[i].collision_volumes++;
+          }
+        }
+      }
+    }
 
     End();
   }

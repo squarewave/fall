@@ -86,7 +86,8 @@ GAME_UPDATE_AND_RENDER(game_update_and_render) {
     g_game_state->meat_space_entity_templates.templates = (MeatSpaceEntityTemplate*)
       deserialize_struct_array(&g_game_state->allocator, TypeInfo_ID_MeatSpaceEntityTemplate,
                                templates_serialized, templates_size,
-                               &g_game_state->meat_space_entity_templates.templates_count);
+                               &g_game_state->meat_space_entity_templates.templates_count,
+                               MAX_MEAT_SPACE_TEMPLATES);
     g_platform.DEBUG_free_file_memory(f.contents);
 
     f = g_platform.DEBUG_read_entire_file("../collision_volumes");
@@ -96,8 +97,16 @@ GAME_UPDATE_AND_RENDER(game_update_and_render) {
     g_game_state->meat_space_entity_templates.collision_volumes = (CollisionVolume*)
       deserialize_struct_array(&g_game_state->allocator, TypeInfo_ID_CollisionVolume,
                                collision_volumes_serialized, collision_volumes_size,
-                               &g_game_state->meat_space_entity_templates.collision_volumes_count);
+                               &g_game_state->meat_space_entity_templates.collision_volumes_count,
+                               MAX_COLLISION_VOLUMES);
     g_platform.DEBUG_free_file_memory(f.contents);
+
+    for (i32 i = 0; i < g_game_state->meat_space_entity_templates.collision_volumes_count; i++) {
+      if (g_game_state->meat_space_entity_templates.collision_volumes[i].type == CollisionVolume_Type_none) {
+        g_game_state->meat_space_entity_templates.max_collision_volume_index = i - 1;
+        break;
+      }
+    }
 
     meat_space->camera.position = vec2{ 0.0f, 0.0f };
     meat_space->camera.scale = vec2{ 1920.0f / PX_PER_PIXEL, 1080.0f / PX_PER_PIXEL };
@@ -188,38 +197,6 @@ GAME_UPDATE_AND_RENDER(game_update_and_render) {
     assets_refresh();
   }
 
-  inspect_struct(GameState, g_game_state);
-  for (i32 i = 0; i < g_game_state->meat_space_entity_templates.templates_count; i++) {
-    auto t = &g_game_state->meat_space_entity_templates.templates[i];
-    inspect_struct_named(MeatSpaceEntityTemplate,
-                         t,
-                         enum_member_name(MeatSpaceEntityTemplateId, t->id));
-    ImGui::PushID(i);
-    if (has_flag(t->flags, ENTITY_FLAG_CHARACTER)) {
-      if (ImGui::Button("Player")) {
-        g_game_state->pending_entity_placement_id = t->id;
-        g_game_state->pending_entity_placement_selection_group = SelectionGroup_player;
-        g_game_state->pending_entity_variation_number =
-          rnd_pcg_next(&g_game_state->TMP_meat_space->pcg);
-      }
-      ImGui::SameLine();
-      if (ImGui::Button("Enemy")) {
-        g_game_state->pending_entity_placement_id = t->id;
-        g_game_state->pending_entity_placement_selection_group = SelectionGroup_enemy;
-        g_game_state->pending_entity_variation_number =
-          rnd_pcg_next(&g_game_state->TMP_meat_space->pcg);
-      }
-    } else {
-      if (ImGui::Button("Create")) {
-        g_game_state->pending_entity_placement_id = t->id;
-        g_game_state->pending_entity_placement_selection_group = SelectionGroup_none;
-        g_game_state->pending_entity_variation_number = 
-          rnd_pcg_next(&g_game_state->TMP_meat_space->pcg);
-      }
-    }
-    ImGui::PopID();
-  }
-
   if (g_game_state->pending_entity_placement_id != MeatSpaceEntityTemplateId_none) {
     if (was_pressed(g_input->mouse.button_r)) {
       eat_button_input(&g_input->mouse.button_r);
@@ -297,16 +274,6 @@ GAME_DEBUG_END_FRAME(game_debug_end_frame) {
   framerates[buffer_index & buffer_length - 1] = 0.0f;
   framerates[buffer_index & buffer_length - 1] = 0.0f;
 
-  if (ImGui::Begin("Stats")) {
-    ImGui::PlotHistogram("", framerates, buffer_length, 0, "ms / frame", 0.0f, 64.0f, ImVec2(0, 80));
-    ImGui::PlotHistogram("", transient_memory, buffer_length,
-                         0, "transient KB used", 0.0f, (f32)TRANSIENT_MEMORY_SIZE, ImVec2(0, 80));
-    ImGui::PlotHistogram("", max_transient_memory, buffer_length,
-                         0, "max transient KB used", 0.0f, (f32)TRANSIENT_MEMORY_SIZE, ImVec2(0, 80));
-    ImGui::PlotHistogram("", game_memory, buffer_length,
-                         0, "game KB used", 0.0f, (f32)GAME_MEMORY_SIZE, ImVec2(0, 80));
-  }
-  ImGui::End();
   ImGui::SetNextWindowPos(ImVec2(10, 10));
   ImGui::Begin("Fixed Overlay", NULL, ImVec2(0, 0), 0.3f,
                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
@@ -314,12 +281,68 @@ GAME_DEBUG_END_FRAME(game_debug_end_frame) {
     g_game_state->editor_mode = EditorMode_assets;
   } else if (ImGui::Button("Entity Editor")) {
     g_game_state->editor_mode = EditorMode_entities;
+  } else if (ImGui::Button("In-game Editor")) {
+    g_game_state->editor_mode = EditorMode_game;
   } else if (ImGui::Button("Game Mode")) {
     g_game_state->editor_mode = EditorMode_none;
   }
   ImGui::End();
 
-  show_debug_log();
+  if (g_game_state->editor_mode == EditorMode_game) {
+    ImGui::SetNextWindowPos(ImVec2(10, 120));
+    ImGui::Begin("Game HUD", NULL, ImVec2(0, 0), 0.3f,
+                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
+    for (i32 i = 0; i < g_game_state->meat_space_entity_templates.templates_count; i++) {
+      ImGui::PushID(i);
+      auto t = g_game_state->meat_space_entity_templates.templates + i;
+      ImGui::Text(enum_member_name(MeatSpaceEntityTemplateId, t->id));
+      ImGui::PopID();
+    }
+
+    ImGui::PlotHistogram("", framerates, buffer_length, 0, "ms / frame", 0.0f, 64.0f);
+    ImGui::PlotHistogram("", transient_memory, buffer_length,
+                         0, "transient KB used", 0.0f, (f32)TRANSIENT_MEMORY_SIZE);
+    ImGui::PlotHistogram("", max_transient_memory, buffer_length,
+                         0, "max transient KB used", 0.0f, (f32)TRANSIENT_MEMORY_SIZE);
+    ImGui::PlotHistogram("", game_memory, buffer_length,
+                         0, "game KB used", 0.0f, (f32)GAME_MEMORY_SIZE);
+
+    inspect_struct(GameState, g_game_state);
+    for (i32 i = 0; i < g_game_state->meat_space_entity_templates.templates_count; i++) {
+      auto t = &g_game_state->meat_space_entity_templates.templates[i];
+      inspect_struct_named(MeatSpaceEntityTemplate,
+                           t,
+                           enum_member_name(MeatSpaceEntityTemplateId, t->id));
+      ImGui::PushID(i);
+      if (has_flag(t->flags, ENTITY_FLAG_CHARACTER)) {
+        if (ImGui::Button("Player")) {
+          g_game_state->pending_entity_placement_id = t->id;
+          g_game_state->pending_entity_placement_selection_group = SelectionGroup_player;
+          g_game_state->pending_entity_variation_number =
+            rnd_pcg_next(&g_game_state->TMP_meat_space->pcg);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Enemy")) {
+          g_game_state->pending_entity_placement_id = t->id;
+          g_game_state->pending_entity_placement_selection_group = SelectionGroup_enemy;
+          g_game_state->pending_entity_variation_number =
+            rnd_pcg_next(&g_game_state->TMP_meat_space->pcg);
+        }
+      } else {
+        if (ImGui::Button("Create")) {
+          g_game_state->pending_entity_placement_id = t->id;
+          g_game_state->pending_entity_placement_selection_group = SelectionGroup_none;
+          g_game_state->pending_entity_variation_number =
+            rnd_pcg_next(&g_game_state->TMP_meat_space->pcg);
+        }
+      }
+      ImGui::PopID();
+    }
+
+    ImGui::End();
+
+    show_debug_log();
+  }
 }
 
 GAME_IMGUI_GET_IO(game_imgui_get_io) {
